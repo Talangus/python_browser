@@ -20,6 +20,7 @@ class Browser:
         self.canvas.pack()
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
+        self.window.bind("<Up>", self.scrollup)
     
     def load(self, url):
         body = url.request()
@@ -39,8 +40,35 @@ class Browser:
             self.canvas.create_text(x, y - self.scroll, text=c)
 
     def scrolldown(self, e):
-        self.scroll += SCROLL_STEP
+        tmp_scroll = self.scroll + SCROLL_STEP
+        max_scroll = self.get_max_scroll()
+        if tmp_scroll > max_scroll:
+            tmp_scroll = max_scroll
+        
+        self.scroll = tmp_scroll
         self.draw()
+
+    def scrollup(self, e):
+        tmp_scroll = self.scroll - SCROLL_STEP
+        if tmp_scroll < 0:
+            self.scroll = 0
+        else:
+            self.scroll = tmp_scroll
+        
+        self.draw()
+
+    def get_page_bottom(self):
+        last_index = len(self.display_list) - 1
+        last_item = self.display_list[last_index]
+        lowest_y = last_item[1]
+        return lowest_y
+    
+    def get_max_scroll(self):
+        page_bottom = self.get_page_bottom()
+        max_scroll = page_bottom - HEIGHT + VSTEP
+        
+        return max_scroll
+
 
 def replace_html_entity(regex_match):
     html_entities = {
@@ -73,13 +101,35 @@ def lex(body):
 def layout(text):
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
-    for c in text:
-        display_list.append((cursor_x, cursor_y, c))
-        cursor_x += HSTEP
-        if cursor_x >= WIDTH - HSTEP:
-            cursor_y += VSTEP
+    i = 0
+
+    while i < len(text):
+        char = text[i]
+        if char == '\n':
+            if is_paragraph_break(i, text):
+                cursor_y += 1.2 * VSTEP
+                i += 1
+            else:
+                cursor_y += VSTEP
             cursor_x = HSTEP
+        else:
+            display_list.append((cursor_x, cursor_y, char))
+            cursor_x += HSTEP
+            if past_vertical_border(cursor_x):
+                cursor_y += VSTEP
+                cursor_x = HSTEP
+        i+=1
+
     return display_list
+
+def is_paragraph_break(i, text):
+    if i == len(text) -1:
+        return False
+    next_char = text[i+1]
+    return next_char == '\n'
+
+def past_vertical_border(cursor_x):
+        return cursor_x >= WIDTH - HSTEP
 
 def get_url_arg():
     if len(sys.argv) > 1:
