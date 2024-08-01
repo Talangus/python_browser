@@ -81,7 +81,7 @@ class Browser:
 
     def on_resize(self, event):
         self.width = event.width
-        HEIGHT = event.height
+        self.height = event.height
         self.display_list = self.layout(self.text)
         self.draw()
 
