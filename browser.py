@@ -4,6 +4,7 @@ import tkinter
 from url import URL
 from socket_manager import socket_manager 
 from cache import cache
+from coordinate import Coordinate
 from utils import *
 
 HSTEP, VSTEP = 13, 18
@@ -38,6 +39,7 @@ class Browser:
         
     def draw(self):
         self.canvas.delete("all")
+        self.handle_scrollbar()
         for x, y, c in self.display_list:
             if y > self.scroll + self.height: continue
             if y + VSTEP < self.scroll: continue
@@ -109,11 +111,33 @@ class Browser:
 
         return display_list
 
-
     def past_vertical_border(self, cursor_x):
-        return cursor_x >= self.width - HSTEP
+        return cursor_x >= self.width - HSTEP*1.7
 
+    def handle_scrollbar(self):
+        if not self.need_scrollbar():
+            return
+        
+        top_left ,bottom_right = self.get_scrollbar_coordinates()
+        self.canvas.create_rectangle(*top_left ,*bottom_right, fill="blue")
 
+    def need_scrollbar(self):
+        return True
+    
+    def get_scrollbar_coordinates(self):
+        bar_width = VSTEP*0.8
+        bar_hight = self.get_scorllbar_hight()
+        top_left = Coordinate(self.width - VSTEP, 3)
+        bottom_right = Coordinate(top_left.x + bar_width, top_left.y + bar_hight)
+
+        return top_left ,bottom_right
+
+    def get_scorllbar_hight(self):
+        page_bottom = self.get_page_bottom()
+        viewport_to_page_ratio = self.height / page_bottom
+        scrollbar_hight = viewport_to_page_ratio * self.height
+
+        return scrollbar_hight
         
 
 
@@ -146,14 +170,11 @@ def lex(body):
     
     return text
 
-
 def is_paragraph_break(i, text):
     if i == len(text) -1:
         return False
     next_char = text[i+1]
     return next_char == '\n'
-
-
 
 def get_url_arg():
     if len(sys.argv) > 1:
