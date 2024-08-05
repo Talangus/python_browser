@@ -127,7 +127,7 @@ class Browser:
     def get_scrollbar_coordinates(self):
         bar_width = VSTEP*0.8
         bar_hight = self.get_scorllbar_hight()
-        top_left = Coordinate(self.width - VSTEP, 3)
+        top_left = self.get_scrollbar_top_left()
         bottom_right = Coordinate(top_left.x + bar_width, top_left.y + bar_hight)
 
         return top_left ,bottom_right
@@ -136,9 +136,16 @@ class Browser:
         page_bottom = self.get_page_bottom()
         viewport_to_page_ratio = self.height / page_bottom
         scrollbar_hight = viewport_to_page_ratio * self.height
-
-        return scrollbar_hight
+        fit_to_screen_hight = scrollbar_hight * 0.92
+        return fit_to_screen_hight
         
+    def get_scrollbar_top_left(self):
+        page_bottom = self.get_page_bottom()
+        scroll_to_bottom_ratio = self.scroll / page_bottom
+        scroll_bar_top = scroll_to_bottom_ratio * self.height
+        fit_to_screen_top = scroll_bar_top + 3
+        top_left = Coordinate(self.width - VSTEP, fit_to_screen_top)
+        return top_left
 
 
 
