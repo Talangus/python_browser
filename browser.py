@@ -71,7 +71,10 @@ class Browser:
     
     def get_max_scroll(self):
         page_bottom = self.get_page_bottom()
-        max_scroll = page_bottom - self.height + VSTEP
+        if page_bottom <= self.height:
+            max_scroll = 0
+        else:
+            max_scroll = page_bottom - self.height + VSTEP
         
         return max_scroll
     
@@ -122,7 +125,9 @@ class Browser:
         self.canvas.create_rectangle(*top_left ,*bottom_right, fill="blue")
 
     def need_scrollbar(self):
-        return True
+        scrollbar_hight = self.get_scorllbar_hight()
+        return scrollbar_hight < self.height
+        
     
     def get_scrollbar_coordinates(self):
         bar_width = VSTEP*0.8
