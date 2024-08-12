@@ -1,14 +1,17 @@
 import re
 import sys
 import tkinter
+from PIL import Image, ImageTk
 from url import URL
 from socket_manager import socket_manager 
 from cache import cache
 from coordinate import Coordinate
 from utils import *
+from html_decode import html_decode, is_emoji_char
 
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
+
 class Browser:
     def __init__(self):
         self.width = 800
@@ -32,7 +35,8 @@ class Browser:
             text = body
         else:
             text = lex(body)
-
+            text = html_decode(text)
+        
         self.text = text
         self.display_list = self.layout(text)
         self.draw() 
@@ -43,7 +47,21 @@ class Browser:
         for x, y, c in self.display_list:
             if y > self.scroll + self.height: continue
             if y + VSTEP < self.scroll: continue
-            self.canvas.create_text(x, y - self.scroll, text=c)
+            if is_emoji_char(c):
+                self.draw_emoji(x, y, c)
+            else:
+                self.canvas.create_text(x, y - self.scroll, text=c)
+    
+    def draw_emoji(self, x, y, c):
+        code_point = ord(c)
+        hex_code = format(code_point, 'X')
+        path = get_emoji_png_path(hex_code)
+
+        image = Image.open(path)
+        resize_image = image.resize((16, 16))
+        photoImage = ImageTk.PhotoImage(resize_image)
+        
+        self.canvas.create_image(x,y, image=photoImage)
 
     def on_scrolldown(self, event):
         tmp_scroll = self.scroll + SCROLL_STEP
@@ -128,7 +146,6 @@ class Browser:
         scrollbar_hight = self.get_scorllbar_hight()
         return scrollbar_hight < self.height
         
-    
     def get_scrollbar_coordinates(self):
         bar_width = VSTEP*0.8
         bar_hight = self.get_scorllbar_hight()
@@ -153,21 +170,6 @@ class Browser:
         return top_left
 
 
-
-def replace_html_entity(regex_match):
-    html_entities = {
-        "quot": '"', "amp": "&", "lt": "<", "gt": ">"
-    }
-    entity = regex_match.group(1)
-    if entity in html_entities:
-        return html_entities[entity]
-    else:
-        return 'HTML_ENTITY_NOT_SUPOORTED'
-
-def html_decode(string):
-    html_encoded_regex = r'&(.*)?;'
-    decoded = re.sub(html_encoded_regex, replace_html_entity, string)
-    return decoded
 
 def lex(body):
     in_tag = False

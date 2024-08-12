@@ -1,5 +1,8 @@
 import os
+import re
 from datetime import datetime, timedelta
+from pathlib import Path
+
 
 class CustomError(Exception):
     pass
@@ -36,3 +39,11 @@ def read_utf8_line(line_bytes):
 def remove_delimiter(content):
     delimiter_length = len('\r\n')
     return content[:-delimiter_length]
+
+def get_emoji_png_path(code_point_hex):
+    emoji_dir = "./openmoji-618x618-color"
+    filename = f"{code_point_hex}.png"
+    path = Path(os.path.join(emoji_dir, filename))
+
+    return path
+
