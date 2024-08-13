@@ -24,10 +24,12 @@ class Browser:
         )
         self.canvas.pack(fill="both", expand=1)
         self.scroll = 0
+        self.images = []
         self.window.bind("<Down>", self.on_scrolldown)
         self.window.bind("<Up>", self.on_scrollup)
         self.window.bind("<MouseWheel>", self.on_mouse_wheel)
         self.window.bind("<Configure>", self.on_resize)
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
     
     def load(self, url):
         body = url.request()
@@ -48,7 +50,7 @@ class Browser:
             if y > self.scroll + self.height: continue
             if y + VSTEP < self.scroll: continue
             if is_emoji_char(c):
-                self.draw_emoji(x, y, c)
+                self.draw_emoji(x, y - self.scroll, c)
             else:
                 self.canvas.create_text(x, y - self.scroll, text=c)
     
@@ -58,10 +60,11 @@ class Browser:
         path = get_emoji_png_path(hex_code)
 
         image = Image.open(path)
-        resize_image = image.resize((16, 16))
-        photoImage = ImageTk.PhotoImage(resize_image)
-        
-        self.canvas.create_image(x,y, image=photoImage)
+        resized_image = image.resize((16, 16))
+        tk_image = ImageTk.PhotoImage(resized_image)
+        self.images.append(tk_image)
+
+        self.canvas.create_image(x,y, image=tk_image)
 
     def on_scrolldown(self, event):
         tmp_scroll = self.scroll + SCROLL_STEP
@@ -80,6 +83,11 @@ class Browser:
             self.scroll = tmp_scroll
         
         self.draw()
+
+    def on_close(self):
+        socket_manager.close_all()
+        cache.clear_expired_entries()
+        self.window.destroy()
 
     def get_page_bottom(self):
         last_index = len(self.display_list) - 1
@@ -203,6 +211,5 @@ if __name__ == "__main__":
     Browser().load(url)
     tkinter.mainloop()
 
-    socket_manager.close_all()
-    cache.clear_expired_entries()
+    
 
