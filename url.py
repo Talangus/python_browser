@@ -19,20 +19,26 @@ class URL:
     DATA_URL_TYPES=["text"]
 
     def __init__(self, url):
-        self.scheme, rest = URL.parse_scheme(url)
+        try:
+            self.scheme, rest = URL.parse_scheme(url)
 
-        if self.scheme == 'view-source':
-            self.scheme, rest = URL.parse_scheme(rest)
-            self.is_view_source = True
-        else: self.is_view_source = False
+            if self.scheme == 'view-source':
+                self.scheme, rest = URL.parse_scheme(rest)
+                self.is_view_source = True
+            else: self.is_view_source = False
 
-        if self.scheme == 'data':
-            self.process_data_scheme(rest)
-            return
-        
-        self.host, rest = URL.parse_host(rest)
+            if self.scheme == 'data':
+                self.process_data_scheme(rest)
+                return
+            
+            self.host, rest = URL.parse_host(rest)
 
-        self.host, self.port = URL.parse_port(self.host, self.scheme)
+            self.host, self.port = URL.parse_port(self.host, self.scheme)
+            self.is_malformed_url = False
+        except:
+            self.is_malformed_url = True
+            self.is_view_source = False
+            return 
 
         self.path = "/" + rest
         self.headers = {"Host": self.host,
@@ -65,6 +71,9 @@ class URL:
         assert self.data_type in URL.DATA_URL_TYPES
     
     def request(self):
+        if self.is_malformed_url:
+            return " "
+
         if not self.need_socket():
             content = self.local_request_content()
             return content
