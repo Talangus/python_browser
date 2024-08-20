@@ -1,6 +1,8 @@
 import re
 import sys
 import tkinter
+import argparse
+from collections import deque
 from PIL import Image, ImageTk
 from url import URL
 from socket_manager import socket_manager 
@@ -13,9 +15,11 @@ HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
 
 class Browser:
-    def __init__(self):
+    def __init__(self, alt_text_direction):
         self.width = 800
         self.height = 600
+        self.hstep = 13
+        self.vstep = 18
         self.window = tkinter.Tk()
         self.canvas = tkinter.Canvas(
             self.window, 
@@ -30,6 +34,7 @@ class Browser:
         self.window.bind("<MouseWheel>", self.on_mouse_wheel)
         self.window.bind("<Configure>", self.on_resize)
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.alt_text_direction = alt_text_direction
     
     def load(self, url):
         body = url.request()
@@ -42,13 +47,14 @@ class Browser:
         self.text = text
         self.display_list = self.layout(text)
         self.draw() 
+
         
     def draw(self):
         self.canvas.delete("all")
         self.handle_scrollbar()
         for x, y, c in self.display_list:
             if y > self.scroll + self.height: continue
-            if y + VSTEP < self.scroll: continue
+            if y + self.vstep < self.scroll: continue
             if is_emoji_char(c):
                 self.draw_emoji(x, y - self.scroll, c)
             else:
@@ -100,7 +106,7 @@ class Browser:
         if page_bottom <= self.height:
             max_scroll = 0
         else:
-            max_scroll = page_bottom - self.height + VSTEP
+            max_scroll = page_bottom - self.height + self.vstep
         
         return max_scroll
     
@@ -118,30 +124,47 @@ class Browser:
 
     def layout(self, text):
         display_list = []
-        cursor_x, cursor_y = HSTEP, VSTEP
-        i = 0
-
-        while i < len(text):
-            char = text[i]
-            if char == '\n':
-                if is_paragraph_break(i, text):
-                    cursor_y += 1.2 * VSTEP
-                    i += 1
+        cursor_y = self.vstep
+        lines = text.splitlines()
+        lines_queue = deque(lines)
+        
+        while len(lines_queue) > 0:
+            line = lines_queue.popleft()
+            
+            if line == '':
+                if is_paragraph_break(lines_queue):
+                    cursor_y += 1.2 * self.vstep
+                    lines_queue.popleft()
                 else:
-                    cursor_y += VSTEP
-                cursor_x = HSTEP
-            else:
-                display_list.append((cursor_x, cursor_y, char))
-                cursor_x += HSTEP
-                if self.past_vertical_border(cursor_x):
-                    cursor_y += VSTEP
-                    cursor_x = HSTEP
-            i+=1
+                    cursor_y += self.vstep
+                continue
+
+            if self.should_split_line(line):
+                line, rest = self.split_line(line)
+                lines_queue.appendleft(rest)
+
+            cursor_x = self.get_initial_x(line)
+            regex_matches = match_on_text_direction(line)
+            
+            for match in regex_matches:
+                if match.group('rtl'):
+                    reversed = match.group('rtl')[::-1]
+                    line_part = reversed
+                else:
+                    line_part = match.group('ltr')
+
+                for index, char in enumerate(line_part):
+                    char = line_part[index]
+                    display_list.append((cursor_x, cursor_y, char))
+                    cursor_x += self.hstep
+            
+            cursor_y += self.vstep
+                    
 
         return display_list
 
     def past_vertical_border(self, cursor_x):
-        return cursor_x >= self.width - HSTEP*1.7
+        return cursor_x >= self.width - self.hstep*1.7
 
     def handle_scrollbar(self):
         if not self.need_scrollbar():
@@ -155,7 +178,7 @@ class Browser:
         return scrollbar_hight < self.height
         
     def get_scrollbar_coordinates(self):
-        bar_width = VSTEP*0.8
+        bar_width = self.vstep*0.8
         bar_hight = self.get_scorllbar_hight()
         top_left = self.get_scrollbar_top_left()
         bottom_right = Coordinate(top_left.x + bar_width, top_left.y + bar_hight)
@@ -174,10 +197,31 @@ class Browser:
         scroll_to_bottom_ratio = self.scroll / page_bottom
         scroll_bar_top = scroll_to_bottom_ratio * self.height
         fit_to_screen_top = scroll_bar_top + 3
-        top_left = Coordinate(self.width - VSTEP, fit_to_screen_top)
+        top_left = Coordinate(self.width - self.vstep, fit_to_screen_top)
         return top_left
 
+    def should_split_line(self, line):
+        total_length = len(line) * self.hstep
+        max_line_length = self.width - 2*self.hstep
+        return max_line_length > 0 and total_length > max_line_length
+    
+    def get_initial_x(self, line):
+        if not self.alt_text_direction:
+            return self.hstep
+        
+        total_length = len(line) * self.hstep
+        page_border = self.width - self.hstep
+        initial_x = page_border - total_length
 
+        return initial_x
+
+    def split_line(self, line):
+        max_line_length = self.width - 2*self.hstep
+        max_chars_in_line = int(max_line_length / self.hstep)
+        rest = line[max_chars_in_line:]
+        line = line[:max_chars_in_line]
+
+        return line, rest
 
 def lex(body):
     in_tag = False
@@ -192,23 +236,40 @@ def lex(body):
     
     return text
 
-def is_paragraph_break(i, text):
-    if i == len(text) -1:
-        return False
-    next_char = text[i+1]
-    return next_char == '\n'
+def match_on_text_direction(str):
+    rtl_pattern = r'(?P<rtl>[\u0590-\u08FF]+)'
+    ltr_pattern = r'(?P<ltr>[^\u0590-\u08FF]+)'
+    combined_pattern = f'({rtl_pattern})|({ltr_pattern})'
+    
+    matches = re.finditer(combined_pattern, str)
+    return matches
 
-def get_url_arg():
-    if len(sys.argv) > 1:
-        return sys.argv[1]
-    else:
-        return URL.DEFAULT_FILE_PATH
+def is_paragraph_break(lines_queue):
+    next_line = lines_queue[0]
+    return next_line == ''
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Simple python browser.")
+    
+    parser.add_argument("url",
+        type=str,
+        nargs="?",
+        default=URL.DEFAULT_FILE_PATH, 
+        help="The URL to process.")
+    parser.add_argument(
+        "-alt", 
+        action="store_true", 
+        help="Alternate text direction from right to left"
+    )
+
+    args = parser.parse_args()
+    return args.url, args.alt
 
 if __name__ == "__main__":
     
-    url_arg = get_url_arg()
+    url_arg, alt_arg = parse_arguments()
     url = URL(url_arg)
-    Browser().load(url)
+    Browser(alt_text_direction=alt_arg).load(url)
     tkinter.mainloop()
 
     
