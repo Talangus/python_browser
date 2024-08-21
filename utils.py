@@ -1,5 +1,7 @@
 import os
+import re
 from datetime import datetime, timedelta
+from pathlib import Path
 
 class CustomError(Exception):
     pass
@@ -36,3 +38,38 @@ def read_utf8_line(line_bytes):
 def remove_delimiter(content):
     delimiter_length = len('\r\n')
     return content[:-delimiter_length]
+
+def get_emoji_png_path(code_point_hex):
+    emoji_dir = "./openmoji-618x618-color"
+    filename = f"{code_point_hex}.png"
+    path = Path(os.path.join(emoji_dir, filename))
+
+    return path
+
+def match_on_text_direction(str):
+    right_to_left_pattern = r'(?P<rtl>[\u0590-\u08FF]+)'
+    left_to_right_pattern = r'(?P<ltr>[^\u0590-\u08FF]+)'
+    combined_pattern = f'({right_to_left_pattern})|({left_to_right_pattern})'
+    
+    matches = re.finditer(combined_pattern, str)
+    return matches
+
+def is_paragraph_break(lines_queue):
+    if len(lines_queue) == 0:
+        return False
+    
+    next_line = lines_queue[0]
+    return next_line == ''
+
+def lex(body):
+    in_tag = False
+    text = ''
+    for c in body:
+        if c == "<":
+            in_tag = True
+        elif c == ">":
+            in_tag = False
+        elif not in_tag:
+            text = text + c
+    
+    return text
