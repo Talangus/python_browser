@@ -171,8 +171,3 @@ def html_decode(string):
     html_encoded_regex = r'&(.*?);'
     decoded = re.sub(html_encoded_regex, replace_html_entity, string)
     return decoded
-
-
-    #     return True, f"U+{ord(character):04X}"
-    # else:
-    #     return False, None
