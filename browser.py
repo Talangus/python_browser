@@ -1,7 +1,4 @@
-import re
-import sys
 import tkinter
-import tkinter.font
 import argparse
 from collections import deque
 from PIL import Image, ImageTk
@@ -10,7 +7,7 @@ from socket_manager import socket_manager
 from cache import cache
 from coordinate import Coordinate
 from utils import *
-from html_decode import html_decode, is_emoji_char
+from html_decode import html_decode
 from layout import Layout
 
 class Browser:
@@ -52,10 +49,7 @@ class Browser:
         for x, y, c, f in self.display_list:
             if self.is_below_viewport(y): continue
             if self.is_above_viewport(y): continue
-            # if is_emoji_char(c):
-            #     self.draw_emoji(x, y - self.scroll, c)
-            else:
-                self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
+            self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
     
     def is_below_viewport(self, y):
         return y > self.scroll + self.height
