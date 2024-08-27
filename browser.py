@@ -1,6 +1,7 @@
 import re
 import sys
 import tkinter
+import tkinter.font
 import argparse
 from collections import deque
 from PIL import Image, ImageTk
@@ -10,13 +11,14 @@ from cache import cache
 from coordinate import Coordinate
 from utils import *
 from html_decode import html_decode, is_emoji_char
+from layout import Layout
 
 class Browser:
     SCROLL_STEP = 100
     HSTEP = 13
     VSTEP = 18
     
-    def __init__(self, alt_text_direction):
+    def __init__(self):
         self.width = 800
         self.height = 600
         self.window = tkinter.Tk()
@@ -29,7 +31,6 @@ class Browser:
 
         self.scroll = 0
         self.images = []
-        self.alt_text_direction = alt_text_direction
 
         self.window.bind("<Down>", self.on_scrolldown)
         self.window.bind("<Up>", self.on_scrollup)
@@ -39,26 +40,22 @@ class Browser:
     
     def load(self, url):
         body = url.request()
-        if url.is_view_source:
-            text = body
-        else:
-            text = lex(body)
-            text = html_decode(text)
-        
-        self.text = text
-        self.layout(text)
+        tokens = lex(body)
+        tokens = list(map(html_decode, tokens))
+        self.tokens = tokens
+        self.display_list = Layout(self.tokens,self.width).display_list
         self.draw() 
         
     def draw(self):
         self.canvas.delete("all")
         self.handle_scrollbar()
-        for x, y, c in self.display_list:
+        for x, y, c, f in self.display_list:
             if self.is_below_viewport(y): continue
             if self.is_above_viewport(y): continue
-            if is_emoji_char(c):
-                self.draw_emoji(x, y - self.scroll, c)
+            # if is_emoji_char(c):
+            #     self.draw_emoji(x, y - self.scroll, c)
             else:
-                self.canvas.create_text(x, y - self.scroll, text=c)
+                self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
     
     def is_below_viewport(self, y):
         return y > self.scroll + self.height
@@ -97,6 +94,8 @@ class Browser:
         return max_scroll
     
     def get_page_bottom(self):
+        if len(self.display_list) ==0:
+            return 0.001
         last_index = len(self.display_list) - 1
         last_item = self.display_list[last_index]
         lowest_y = last_item[1]
@@ -125,48 +124,8 @@ class Browser:
     def on_resize(self, event):
         self.width = event.width
         self.height = event.height
-        self.layout(self.text)
+        self.display_list = Layout(self.tokens,self.width).display_list
         self.draw()
-
-    def layout(self, text):
-        display_list = []
-        cursor_y = Browser.VSTEP
-        lines = text.splitlines()
-        lines_queue = deque(lines)
-        
-        while len(lines_queue) > 0:
-            line = lines_queue.popleft()
-            
-            if line == '':
-                if is_paragraph_break(lines_queue):
-                    cursor_y += 1.2 * Browser.VSTEP
-                    lines_queue.popleft()
-                else:
-                    cursor_y += Browser.VSTEP
-                continue
-
-            if self.should_split_line(line):
-                line, rest = self.split_line(line)
-                lines_queue.appendleft(rest)
-
-            cursor_x = self.get_initial_x(line)
-            regex_matches = match_on_text_direction(line)
-            
-            for match in regex_matches:
-                if match.group('rtl'):
-                    reversed = match.group('rtl')[::-1]
-                    line_part = reversed
-                else:
-                    line_part = match.group('ltr')
-
-                for index, char in enumerate(line_part):
-                    char = line_part[index]
-                    display_list.append((cursor_x, cursor_y, char))
-                    cursor_x += Browser.HSTEP
-            
-            cursor_y += Browser.VSTEP
-
-        self.display_list = display_list
 
     def handle_scrollbar(self):
         if not self.need_scrollbar():
@@ -201,30 +160,7 @@ class Browser:
         fit_to_screen_top = scroll_bar_top + 3
         top_left = Coordinate(self.width - Browser.VSTEP, fit_to_screen_top)
         return top_left
-
-    def should_split_line(self, line):
-        total_length = len(line) * Browser.HSTEP
-        max_line_length = self.width - 2*Browser.HSTEP
-        return max_line_length > 0 and total_length > max_line_length
     
-    def get_initial_x(self, line):
-        if not self.alt_text_direction:
-            return Browser.HSTEP
-        
-        total_length = len(line) * Browser.HSTEP
-        page_border = self.width - Browser.HSTEP
-        initial_x = page_border - total_length
-
-        return initial_x
-
-    def split_line(self, line):
-        max_line_length = self.width - 2*Browser.HSTEP
-        max_chars_in_line = int(max_line_length / Browser.HSTEP)
-        rest = line[max_chars_in_line:]
-        line = line[:max_chars_in_line]
-
-        return line, rest
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Simple python browser.")
     
@@ -233,20 +169,15 @@ def parse_arguments():
         nargs="?",
         default=URL.DEFAULT_FILE_PATH, 
         help="The URL to process.")
-    parser.add_argument(
-        "-alt", 
-        action="store_true", 
-        help="Alternate text direction from right to left"
-    )
-
+    
     args = parser.parse_args()
-    return args.url, args.alt
+    return args.url
 
 if __name__ == "__main__":
     
-    url_arg, alt_arg = parse_arguments()
+    url_arg = parse_arguments()
     url = URL(url_arg)
-    Browser(alt_text_direction=alt_arg).load(url)
+    Browser().load(url)
     tkinter.mainloop()
 
     
