@@ -1,5 +1,5 @@
 import re
-
+from utils import *
 
 html_entities = {
     "20": " ",
@@ -167,7 +167,11 @@ def is_emoji_hex(hex_code):
     num = int(hex_code, 16)
     return num > 0x1F000
 
-def html_decode(string):
+def html_decode(tok):
+    if not isinstance(tok, Text):
+        return tok
+
+    text = tok.text
     html_encoded_regex = r'&(.*?);'
-    decoded = re.sub(html_encoded_regex, replace_html_entity, string)
-    return decoded
+    decoded = re.sub(html_encoded_regex, replace_html_entity, text)
+    return Text(decoded)
