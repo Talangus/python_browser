@@ -1,4 +1,5 @@
 from utils import *
+from tag import Tag
 import tkinter.font
 
 FONTS = {}
@@ -24,6 +25,8 @@ class Layout:
         self.weight = "normal"
         self.style = "roman"
         self.size = 12
+        self.current_tag = ''
+        self.tag_class = ''
         self.line = []
         for tok in tokens:
             self.token(tok)
@@ -48,27 +51,7 @@ class Layout:
         if isinstance(tok, Text):
             for word in tok.text.split():
                 self.word(word)
-        elif tok.tag == "i":
-            self.style = "italic"
-        elif tok.tag == "/i":
-            self.style = "roman"
-        elif tok.tag == "b":
-            self.weight = "bold"
-        elif tok.tag == "/b":
-            self.weight = "normal"
-        elif tok.tag == "small":
-            self.size -= 2
-        elif tok.tag == "/small":
-            self.size += 2
-        elif tok.tag == "big":
-            self.size += 4
-        elif tok.tag == "/big":
-            self.size -= 4
-        elif tok.tag == "br":
-            self.flush()
-        elif tok.tag == "/p":
-            self.flush()
-            self.cursor_y += Layout.VSTEP
+        else: self.handle_tag(tok)
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
@@ -78,5 +61,22 @@ class Layout:
         self.line.append((self.cursor_x, word, font))
         self.cursor_x += w + font.measure(" ")
 
+    def handle_tag(self, tok):
+        tag_handlers = {
+        "i": lambda: setattr(self, 'style', 'italic'),
+        "/i": lambda: setattr(self, 'style', 'roman'),
+        "b": lambda: setattr(self, 'weight', 'bold'),
+        "/b": lambda: setattr(self, 'weight', 'normal'),
+        "small": lambda: setattr(self, 'size', self.size - 2),
+        "/small": lambda: setattr(self, 'size', self.size + 2),
+        "big": lambda: setattr(self, 'size', self.size + 4),
+        "/big": lambda: setattr(self, 'size', self.size - 4),
+        "br": self.flush,
+        "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
+        "/h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
+        "/p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP))
+        }
 
+        if tok.tag in tag_handlers:
+                tag_handlers[tok.tag]()
     
