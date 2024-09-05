@@ -34,12 +34,16 @@ class Layout:
 
     def flush(self):
         if not self.line: return
-        metrics = [font.metrics() for x, word, font in self.line]
+        metrics = [font.metrics() for x, word, font, y_align in self.line]
         max_ascent = max([metric["ascent"] for metric in metrics])
         baseline = self.cursor_y + 1.25 * max_ascent
         
-        for x, word, font in self.line:
-            y = baseline - font.metrics("ascent")
+        for x, word, font, y_align in self.line:
+            if y_align:
+                top_alignment = baseline - max_ascent
+                y = top_alignment
+            else:
+                y = baseline - font.metrics("ascent")
             self.display_list.append((x, y, word, font))
             
         max_descent = max([metric["descent"] for metric in metrics])
@@ -49,7 +53,7 @@ class Layout:
             
     def token(self, tok):
         if isinstance(tok, Text):
-            if self.should_center_text():
+            if self.should_align_horizontal():
                 self.cursor_x = self.get_centered_cursor_x(tok.text)
             for word in tok.text.split():
                 self.word(word)
@@ -60,7 +64,7 @@ class Layout:
         w = font.measure(word)
         if self.cursor_x + w > self.width - Layout.HSTEP:
             self.flush()
-        self.line.append((self.cursor_x, word, font))
+        self.line.append((self.cursor_x, word, font, self.should_align_vertical()))
         self.cursor_x += w + font.measure(" ")
 
     def handle_tag(self, tok):
@@ -76,6 +80,8 @@ class Layout:
         "br": self.flush,
         "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
         "/h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
+        "sup": lambda: (setattr(self, 'current_tag', "sup"), setattr(self, 'size', 6)),
+        "/sup": lambda: (setattr(self, 'current_tag', ""),setattr(self, 'size', 12)),
         "/p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP))
         }
 
@@ -87,7 +93,7 @@ class Layout:
         else:
             self.current_tag_class = []
              
-    def should_center_text(self):
+    def should_align_horizontal(self):
         return self.current_tag == 'h1' and "title" in self.current_tag_class
 
     def get_centered_cursor_x(self, text):
@@ -97,7 +103,10 @@ class Layout:
         left_margin = white_space/2
         return left_margin
         
-         
-          
+    def should_align_vertical(self):
+        return self.current_tag == 'sup'
+    
+    
+              
     
          
