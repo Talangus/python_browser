@@ -26,7 +26,7 @@ class Layout:
         self.style = "roman"
         self.size = 12
         self.current_tag = ''
-        self.tag_class = ''
+        self.current_tag_class = ''
         self.line = []
         for tok in tokens:
             self.token(tok)
@@ -49,6 +49,8 @@ class Layout:
             
     def token(self, tok):
         if isinstance(tok, Text):
+            if self.should_center_text():
+                self.cursor_x = self.get_centered_cursor_x(tok.text)
             for word in tok.text.split():
                 self.word(word)
         else: self.handle_tag(tok)
@@ -79,4 +81,23 @@ class Layout:
 
         if tok.tag in tag_handlers:
                 tag_handlers[tok.tag]()
+
+        if "class" in tok.attributes:
+             self.current_tag_class = tok.attributes["class"]
+        else:
+            self.current_tag_class = []
+             
+    def should_center_text(self):
+        return self.current_tag == 'h1' and "title" in self.current_tag_class
+
+    def get_centered_cursor_x(self, text):
+        font = get_font(self.size, self.weight, self.style)
+        w = font.measure(text)
+        white_space = self.width - w
+        left_margin = white_space/2
+        return left_margin
+        
+         
+          
     
+         

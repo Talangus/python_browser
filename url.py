@@ -8,7 +8,7 @@ from utils import *
 
 
 class URL:
-    DEFAULT_FILE_PATH="file:///Users/li016390/Desktop/challenges/browser/pages/test.html"
+    DEFAULT_FILE_PATH="file:///Users/li016390/Desktop/challenges/browser/pages/test_h1.html"
     SUPPORTED_SCHEME_PORTS={
         "http": 80,
         "https": 443, 
