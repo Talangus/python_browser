@@ -62,8 +62,15 @@ class Layout:
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
         w = font.measure(word)
-        if self.cursor_x + w > self.width - Layout.HSTEP:
+
+        if self.passed_horizontal_border(word, font):
+            if self.should_split_on_hypen(word, font):
+                before_split, after_split = self.split_on_hypen(word, font)
+                self.line.append((self.cursor_x, before_split, font, self.should_align_vertical()))
+                word = after_split
+                w = font.measure(word) 
             self.flush()
+
         self.line.append((self.cursor_x, word, font, self.should_align_vertical()))
         self.cursor_x += w + font.measure(" ")
 
@@ -106,7 +113,39 @@ class Layout:
     def should_align_vertical(self):
         return self.current_tag == 'sup'
     
-    
+    def passed_horizontal_border(self, word ,font):
+        w = font.measure(word)
+        return self.cursor_x + w > self.width - Layout.HSTEP
+
+    def should_split_on_hypen(self, word, font):
+        indexes = Layout.get_soft_hyphen_positions(word)
+        if len(indexes) == 0:
+            return False
+        
+        min_break_index = indexes[0]
+        min_word_split = word[:min_break_index] + "-"
+        return not self.passed_horizontal_border(min_word_split, font)
+
+    def get_soft_hyphen_positions(word):
+        soft_hyphen = '\u00AD'
+        indexes = [m.start() for m in re.finditer(soft_hyphen, word)]
+        return indexes
+
+    def split_on_hypen(self, word, font):
+        indexes = Layout.get_soft_hyphen_positions(word)
+        last_valid_split_index = indexes[0]
+
+        for split_index in indexes:
+            first_split_part = word[:split_index] + "-"
+            if not self.passed_horizontal_border(first_split_part, font):
+                last_valid_split_index = split_index
+            else:
+                break
+        
+        before_split = word[:last_valid_split_index] + "-"
+        after_split = word[last_valid_split_index:]
+        return before_split, after_split
+
               
     
          
