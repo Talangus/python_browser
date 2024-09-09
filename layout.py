@@ -25,6 +25,7 @@ class Layout:
         self.weight = "normal"
         self.style = "roman"
         self.size = 12
+        self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
         self.line = []
@@ -61,15 +62,18 @@ class Layout:
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
+        if self.only_uppercase:
+            word = word.upper()
         w = font.measure(word)
 
         if self.passed_horizontal_border(word, font):
             if self.should_split_on_hypen(word, font):
                 before_split, after_split = self.split_on_hypen(word, font)
                 self.line.append((self.cursor_x, before_split, font, self.should_align_vertical()))
-                word = after_split
-                w = font.measure(word) 
-            self.flush()
+                self.flush()
+                self.word(after_split)
+                return
+            else: self.flush()
 
         self.line.append((self.cursor_x, word, font, self.should_align_vertical()))
         self.cursor_x += w + font.measure(" ")
@@ -89,7 +93,9 @@ class Layout:
         "/h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
         "sup": lambda: (setattr(self, 'current_tag', "sup"), setattr(self, 'size', 6)),
         "/sup": lambda: (setattr(self, 'current_tag', ""),setattr(self, 'size', 12)),
-        "/p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP))
+        "/p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP)),
+        "abbr": lambda: (setattr(self, 'size', self.size - 4), setattr(self, 'weight', 'bold'), setattr(self, 'only_uppercase', True)),
+        "/abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False))
         }
 
         if tok.tag in tag_handlers:
