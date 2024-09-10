@@ -3,12 +3,12 @@ from tag import Tag
 import tkinter.font
 
 FONTS = {}
-
-def get_font(size, weight, style):
-        key = (size, weight, style)
+DEFAULT_FONT = "Arial"
+def get_font(size, weight, style, family):
+        key = (size, weight, style, family)
         if key not in FONTS:
             font = tkinter.font.Font(size=size, weight=weight,
-                slant=style)
+                slant=style, family=family)
             label = tkinter.Label(font=font)
             FONTS[key] = (font, label)
         return FONTS[key][0]
@@ -25,9 +25,11 @@ class Layout:
         self.weight = "normal"
         self.style = "roman"
         self.size = 12
+        self.font_family = DEFAULT_FONT
         self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
+        self.preformat = False
         self.line = []
         for tok in tokens:
             self.token(tok)
@@ -56,12 +58,16 @@ class Layout:
         if isinstance(tok, Text):
             if self.should_align_horizontal():
                 self.cursor_x = self.get_centered_cursor_x(tok.text)
-            for word in tok.text.split():
+            for word in self.split_text_token(tok):
                 self.word(word)
         else: self.handle_tag(tok)
 
     def word(self, word):
-        font = get_font(self.size, self.weight, self.style)
+        if word == "\n":
+            self.flush()
+            return
+        
+        font = get_font(self.size, self.weight, self.style, self.font_family)
         if self.only_uppercase:
             word = word.upper()
         w = font.measure(word)
@@ -95,7 +101,9 @@ class Layout:
         "/sup": lambda: (setattr(self, 'current_tag', ""),setattr(self, 'size', 12)),
         "/p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP)),
         "abbr": lambda: (setattr(self, 'size', self.size - 4), setattr(self, 'weight', 'bold'), setattr(self, 'only_uppercase', True)),
-        "/abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False))
+        "/abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
+        "pre": lambda: (setattr(self, 'preformat', True), setattr(self, 'font_family', "IBM Plex Mono")),
+        "/pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT))
         }
 
         if tok.tag in tag_handlers:
@@ -110,7 +118,7 @@ class Layout:
         return self.current_tag == 'h1' and "title" in self.current_tag_class
 
     def get_centered_cursor_x(self, text):
-        font = get_font(self.size, self.weight, self.style)
+        font = get_font(self.size, self.weight, self.style, self.font_family)
         w = font.measure(text)
         white_space = self.width - w
         left_margin = white_space/2
@@ -120,6 +128,8 @@ class Layout:
         return self.current_tag == 'sup'
     
     def passed_horizontal_border(self, word ,font):
+        if self.preformat:
+            return False
         w = font.measure(word)
         return self.cursor_x + w > self.width - Layout.HSTEP
 
@@ -152,6 +162,16 @@ class Layout:
         after_split = word[last_valid_split_index:]
         return before_split, after_split
 
-              
+    def split_text_token(self, text_token):
+        if not self.preformat:
+            return text_token.text.split()
+
+        words_spaces_new_line_regex = r'[^\s\n]+|[ ]+|\n'
+        text_parts = re.findall(words_spaces_new_line_regex, text_token.text)
+    
+        return text_parts
+        
+
+
     
          
