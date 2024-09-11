@@ -2,6 +2,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
+from tag import Tag
 
 class CustomError(Exception):
     pass
@@ -9,11 +10,6 @@ class CustomError(Exception):
 class Text:
     def __init__(self, text):
         self.text = text
-
-class Tag:
-    def __init__(self, tag):
-        self.tag = tag
-
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 

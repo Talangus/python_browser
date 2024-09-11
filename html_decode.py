@@ -144,7 +144,7 @@ def replace_html_entity(regex_match):
     
 def to_hex_code_point(entity):
     html_names = {
-        "quot": '22', "amp": "26", "lt": "3C", "gt": "3E", "copy": "A9"
+        "quot": '22', "amp": "26", "lt": "3C", "gt": "3E", "copy": "A9", "shy": "AD"
     }
 
     if (entity.startswith("#x")):
