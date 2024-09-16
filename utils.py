@@ -2,14 +2,19 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from tag import Tag
+from element import Element
 
 class CustomError(Exception):
     pass
 
 class Text:
-    def __init__(self, text):
+    def __init__(self, text, parent):
         self.text = text
+        self.children = []
+        self.parent = parent
+
+    def __repr__(self):
+        return repr(self.text)
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -84,3 +89,8 @@ def lex(body):
     if not in_tag and buffer:
         out.append(Text(buffer))
     return out
+
+def print_tree(node, indent=0):
+    print(" " * indent, node)
+    for child in node.children:
+        print_tree(child, indent + 2)
