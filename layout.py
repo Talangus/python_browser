@@ -1,5 +1,5 @@
 from utils import *
-from tag import Tag
+from element import Element
 import tkinter.font
 
 FONTS = {}
@@ -17,7 +17,7 @@ class Layout:
     HSTEP = 13
     VSTEP = 18
 
-    def __init__(self, tokens, width):
+    def __init__(self, nodes, width):
         self.display_list = []
         self.width = width
         self.cursor_x = Layout.HSTEP
@@ -31,9 +31,20 @@ class Layout:
         self.current_tag_class = ''
         self.preformat = False
         self.line = []
-        for tok in tokens:
-            self.token(tok)
+        self.recurse(nodes)
         self.flush()
+
+    def recurse(self, tree):
+        if isinstance(tree, Text):
+            if self.should_align_horizontal():
+                self.cursor_x = self.get_centered_cursor_x(tree.text)
+            for word in self.split_text(tree.text):
+                self.word(word)
+        else:
+            self.open_tag(tree)
+            for child in tree.children:
+                self.recurse(child)
+            self.close_tag(tree)
 
     def flush(self):
         if not self.line: return
@@ -54,14 +65,6 @@ class Layout:
         self.cursor_x = Layout.HSTEP
         self.line = []
             
-    def token(self, tok):
-        if isinstance(tok, Text):
-            if self.should_align_horizontal():
-                self.cursor_x = self.get_centered_cursor_x(tok.text)
-            for word in self.split_text_token(tok):
-                self.word(word)
-        else: self.handle_tag(tok)
-
     def word(self, word):
         if word == "\n":
             self.flush()
@@ -84,36 +87,43 @@ class Layout:
         self.line.append((self.cursor_x, word, font, self.should_align_vertical()))
         self.cursor_x += w + font.measure(" ")
 
-    def handle_tag(self, tok):
-        tag_handlers = {
-        "i": lambda: setattr(self, 'style', 'italic'),
-        "/i": lambda: setattr(self, 'style', 'roman'),
-        "b": lambda: setattr(self, 'weight', 'bold'),
-        "/b": lambda: setattr(self, 'weight', 'normal'),
-        "small": lambda: setattr(self, 'size', self.size - 2),
-        "/small": lambda: setattr(self, 'size', self.size + 2),
-        "big": lambda: setattr(self, 'size', self.size + 4),
-        "/big": lambda: setattr(self, 'size', self.size - 4),
-        "br": self.flush,
-        "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
-        "/h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
-        "sup": lambda: (setattr(self, 'current_tag', "sup"), setattr(self, 'size', 6)),
-        "/sup": lambda: (setattr(self, 'current_tag', ""),setattr(self, 'size', 12)),
-        "/p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP)),
-        "abbr": lambda: (setattr(self, 'size', self.size - 4), setattr(self, 'weight', 'bold'), setattr(self, 'only_uppercase', True)),
-        "/abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
-        "pre": lambda: (setattr(self, 'preformat', True), setattr(self, 'font_family', "IBM Plex Mono")),
-        "/pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT))
-        }
+    def handle_tag(self, element_node, tag_handlers):
+        if element_node.tag in tag_handlers:
+                tag_handlers[element_node.tag]()
 
-        if tok.tag in tag_handlers:
-                tag_handlers[tok.tag]()
-
-        if "class" in tok.attributes:
-             self.current_tag_class = tok.attributes["class"]
+        if "class" in element_node.attributes:
+             self.current_tag_class = element_node.attributes["class"]
         else:
             self.current_tag_class = []
-             
+    
+    def open_tag(self, element_node):
+        opening_tag_handlers = {
+            "i": lambda: setattr(self, 'style', 'italic'),
+            "b": lambda: setattr(self, 'weight', 'bold'),
+            "small": lambda: setattr(self, 'size', self.size - 2),
+            "big": lambda: setattr(self, 'size', self.size + 4),
+            "br": self.flush,
+            "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
+            "sup": lambda: (setattr(self, 'current_tag', "sup"), setattr(self, 'size', 6)),
+            "abbr": lambda: (setattr(self, 'size', self.size - 4), setattr(self, 'weight', 'bold'), setattr(self, 'only_uppercase', True)),
+            "pre": lambda: (setattr(self, 'preformat', True), setattr(self, 'font_family', "IBM Plex Mono")),
+        }
+        self.handle_tag(element_node, opening_tag_handlers)
+
+    def close_tag(self, element_node):
+        closing_tag_handlers = {
+            "i": lambda: setattr(self, 'style', 'roman'),
+            "b": lambda: setattr(self, 'weight', 'normal'),
+            "small": lambda: setattr(self, 'size', self.size + 2),
+            "big": lambda: setattr(self, 'size', self.size - 4),
+            "h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
+            "sup": lambda: (setattr(self, 'current_tag', ""), setattr(self, 'size', 12)),
+            "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP)),
+            "abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
+            "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT)),
+        }
+        self.handle_tag(element_node, closing_tag_handlers)
+
     def should_align_horizontal(self):
         return self.current_tag == 'h1' and "title" in self.current_tag_class
 
@@ -162,12 +172,12 @@ class Layout:
         after_split = word[last_valid_split_index:]
         return before_split, after_split
 
-    def split_text_token(self, text_token):
+    def split_text(self, text):
         if not self.preformat:
-            return text_token.text.split()
+            return text.split()
 
         words_spaces_new_line_regex = r'[^\s\n]+|[ ]+|\n'
-        text_parts = re.findall(words_spaces_new_line_regex, text_token.text)
+        text_parts = re.findall(words_spaces_new_line_regex, text)
     
         return text_parts
         

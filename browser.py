@@ -9,6 +9,7 @@ from coordinate import Coordinate
 from utils import *
 from html_decode import html_decode
 from layout import Layout
+from html_parser import HTMLParser
 
 class Browser:
     SCROLL_STEP = 100
@@ -37,10 +38,9 @@ class Browser:
     
     def load(self, url):
         body = url.request()
-        tokens = lex(body)
-        tokens = list(map(html_decode, tokens))
-        self.tokens = tokens
-        self.display_list = Layout(self.tokens,self.width).display_list
+        nodes = HTMLParser(body).parse()
+        self.nodes = html_decode(nodes)
+        self.display_list = Layout(self.nodes,self.width).display_list
         self.draw() 
         
     def draw(self):
@@ -118,7 +118,7 @@ class Browser:
     def on_resize(self, event):
         self.width = event.width
         self.height = event.height
-        self.display_list = Layout(self.tokens,self.width).display_list
+        self.display_list = Layout(self.nodes,self.width).display_list
         self.draw()
 
     def handle_scrollbar(self):

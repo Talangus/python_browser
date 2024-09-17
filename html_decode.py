@@ -167,11 +167,15 @@ def is_emoji_hex(hex_code):
     num = int(hex_code, 16)
     return num > 0x1F000
 
-def html_decode(tok):
-    if not isinstance(tok, Text):
-        return tok
+def html_decode(tree):
+    if isinstance(tree, Text):
+        text = tree.text
+        html_encoded_regex = r'&(.*?);'
+        decoded = re.sub(html_encoded_regex, replace_html_entity, text)
+        tree.text = decoded
 
-    text = tok.text
-    html_encoded_regex = r'&(.*?);'
-    decoded = re.sub(html_encoded_regex, replace_html_entity, text)
-    return Text(decoded)
+    for child in tree.children:
+        html_decode(child)
+
+    return tree
+    

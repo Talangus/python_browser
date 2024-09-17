@@ -2,14 +2,19 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from tag import Tag
+from element import Element
 
 class CustomError(Exception):
     pass
 
 class Text:
-    def __init__(self, text):
+    def __init__(self, text, parent):
         self.text = text
+        self.children = []
+        self.parent = parent
+
+    def __repr__(self):
+        return repr(self.text)
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -66,21 +71,7 @@ def is_paragraph_break(lines_queue):
     next_line = lines_queue[0]
     return next_line == ''
 
-def lex(body):
-    out = []
-    buffer = ""
-    in_tag = False
-    for c in body:
-        if c == "<":
-            in_tag = True
-            if buffer: out.append(Text(buffer))
-            buffer = ""
-        elif c == ">":
-            in_tag = False
-            out.append(Tag(buffer))
-            buffer = ""
-        else:
-            buffer += c
-    if not in_tag and buffer:
-        out.append(Text(buffer))
-    return out
+def print_tree(node, indent=0):
+    print(" " * indent, node)
+    for child in node.children:
+        print_tree(child, indent + 2)
