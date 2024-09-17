@@ -2,3 +2,4 @@ __pycache__/
 .vscode/
 cache/
 openmoji-618x618-color/
+.DS_Store
