@@ -40,6 +40,7 @@ class Browser:
         body = url.request()
         nodes = HTMLParser(body).parse()
         self.nodes = html_decode(nodes)
+        print_tree(self.nodes)
         self.display_list = Layout(self.nodes,self.width).display_list
         self.draw() 
         

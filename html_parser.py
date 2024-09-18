@@ -113,6 +113,10 @@ class HTMLParser:
                     self.add_tag("body")
             elif open_tags == ["html", "head"] and tag not in ["/head"] + self.HEAD_TAGS:
                 self.add_tag("/head")
+            elif tag == "p" and open_tags[-1] == "p":
+                self.add_tag("/p")
+            elif self.is_close_tag(tag) and not self.close_tag_match_open_tag(tag):
+                self.add_tag(tag[1:])
             else:
                 break
 
@@ -121,3 +125,13 @@ class HTMLParser:
     
     def is_open_comment(self, i):
         return self.body[i:i+4] == "<!--"
+    
+    def is_close_tag(self, tag):
+        if not isinstance(tag, str):
+            return False
+        return tag.startswith("/")
+
+    def close_tag_match_open_tag(self, tag):
+        tag_type = tag[1:]
+        last_open_tag= self.unfinished[-1].tag
+        return tag_type == last_open_tag
