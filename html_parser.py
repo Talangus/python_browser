@@ -20,6 +20,7 @@ class HTMLParser:
         text = ""
         in_tag = False
         in_comment = False
+        in_script = False
         i=0
         while i<len(self.body):
             c = self.body[i]
@@ -32,7 +33,13 @@ class HTMLParser:
                 continue    
             
             if c == "<":
-                if self.is_open_comment(i):
+                if in_script:
+                    if not self.is_close_script(i):
+                        text+=c
+                        i+=1
+                        continue
+
+                elif self.is_open_comment(i):
                     in_comment = True
                     i+=1
                     continue
@@ -40,9 +47,19 @@ class HTMLParser:
                 in_tag = True
                 if text: self.add_text(text)
                 text = ""
+
             elif c == ">":
+                if in_script:
+                    text += c
+                    i+=1
+                    continue
+
                 in_tag = False
                 self.add_tag(text)
+                if text.startswith("script"):
+                    in_script = True
+                elif text.startswith("/script"):
+                    in_script = False
                 text = ""
             else:
                 text += c
@@ -115,6 +132,8 @@ class HTMLParser:
                 self.add_tag("/head")
             elif tag == "p" and open_tags[-1] == "p":
                 self.add_tag("/p")
+            elif tag == "li" and open_tags[-1] == "li":
+                self.add_tag("/li")
             elif self.is_close_tag(tag) and not self.close_tag_match_open_tag(tag):
                 self.add_tag(tag[1:])
             else:
@@ -135,3 +154,6 @@ class HTMLParser:
         tag_type = tag[1:]
         last_open_tag= self.unfinished[-1].tag
         return tag_type == last_open_tag
+    
+    def is_close_script(self, i):
+        return self.body[i:i+9] == "</script>"
