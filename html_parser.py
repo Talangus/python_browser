@@ -15,42 +15,65 @@ class HTMLParser:
     def __init__(self, body):
         self.body = body
         self.unfinished = []
+        self.buffer = ""
+        self.in_tag = False
+        self.in_comment = False
+        self.in_script = False
+        self.in_single_quote = False
+        self.in_double_quote = False
+        self.body_index = 0
 
     def parse(self):
         text = ""
         in_tag = False
         in_comment = False
         in_script = False
+        in_single_quote = False
+        in_double_quote = False
         i=0
-        while i<len(self.body):
-            c = self.body[i]
-            if in_comment:
-                if c != "-" or not self.is_close_comment(i) :
-                    i +=1
+        while not self.finished_parsing():
+            c = self.get_current_char()
+            
+            if self.in_comment:
+                if not self.is_close_comment():
+                    self.advance_index()
                 else: 
-                    in_comment = False
-                    i += 3
+                    self.in_comment = False
+                    self.advance_index(3)
                 continue    
             
-            if c == "<":
-                if in_script:
-                    if not self.is_close_script(i):
-                        text+=c
-                        i+=1
-                        continue
+            if c == "'" or c == "'":
+                self.add_to_buffer(c)
+                self.advance_index()
+                if c == "'":
+                    self.in_single_quote = not self.in_single_quote
+                else:
+                    self.in_double_quote = not self.in_double_quote
+                continue
 
-                elif self.is_open_comment(i):
-                    in_comment = True
-                    i+=1
+            if c == "<":
+                if self.should_ignore_meta_char():
+                    self.add_to_buffer(c)
+                    self.advance_index()
+                    continue
+
+                if self.is_open_comment():
+                    self.in_comment = True
+                    self.advance_index()
                     continue
                 
-                in_tag = True
-                if text: self.add_text(text)
-                text = ""
+                self.in_tag = True
+                if self.buffer: self.add_text(self.buffer)
+                self.buffer = ""
 
             elif c == ">":
                 if in_script:
                     text += c
+                    i+=1
+                    continue
+
+                elif in_double_quote or in_single_quote:
+                    text+=c
                     i+=1
                     continue
 
@@ -61,6 +84,7 @@ class HTMLParser:
                 elif text.startswith("/script"):
                     in_script = False
                 text = ""
+            
             else:
                 text += c
             i+=1
@@ -104,18 +128,18 @@ class HTMLParser:
         return self.unfinished.pop()
     
     def get_attributes(self, text):
-        parts = text.split()
-        tag = parts[0].casefold()
+        tag, *rest = text.split(maxsplit=1)
+        tag = tag.casefold()
         attributes = {}
-        for attrpair in parts[1:]:
-            if "=" in attrpair:
-                key, value = attrpair.split("=", 1)
-                if len(value) > 2 and value[0] in ["'", "\""]:
-                    value = value[1:-1]
+        if len(rest) != 0:
+            attr_pattern = re.compile(r'(\w+)\s*=\s*(".*?"|\'.*?\'|\S+)')
+            
+            for match in attr_pattern.findall(rest[0]):
+                key, value = match
+                if value.startswith(("'", "\"")) and value.endswith(("'", "\"")):
+                    value = value[1:-1]  
                 attributes[key.casefold()] = value
-                
-            else:
-                attributes[attrpair.casefold()] = ""
+
         return tag, attributes
     
     def implicit_tags(self, tag):
@@ -139,10 +163,13 @@ class HTMLParser:
             else:
                 break
 
-    def is_close_comment(self, i):
-        return self.body[i:i+3] == "-->" and self.body[i-2:i] != "<!"
+    def is_close_comment(self):
+        i = self.body_index
+        c = self.get_current_char()
+        return c == '-' and  self.body[i:i+3] == "-->" and self.body[i-2:i] != "<!"
     
     def is_open_comment(self, i):
+        i = self.body_index
         return self.body[i:i+4] == "<!--"
     
     def is_close_tag(self, tag):
@@ -155,5 +182,24 @@ class HTMLParser:
         last_open_tag= self.unfinished[-1].tag
         return tag_type == last_open_tag
     
-    def is_close_script(self, i):
+    def is_close_script(self):
+        i = self.body_index
         return self.body[i:i+9] == "</script>"
+    
+    def finished_parsing(self):
+        return self.body_index >= len(self.body)
+    
+    def get_current_char(self):
+        return self.body[self.body_index]
+    
+    def advance_index(self, int=1):
+        self.body_index+= int
+
+    def add_to_buffer(self, char):
+        self.buffer += char
+
+    def should_ignore_meta_char(self):
+        in_quotes = self.in_double_quote or self.in_single_quote
+        quotes_condition = self.in_tag and in_quotes
+        script_condition = self.in_script and not self.is_close_script()
+        return script_condition or quotes_condition
