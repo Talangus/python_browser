@@ -24,13 +24,6 @@ class HTMLParser:
         self.body_index = 0
 
     def parse(self):
-        text = ""
-        in_tag = False
-        in_comment = False
-        in_script = False
-        in_single_quote = False
-        in_double_quote = False
-        i=0
         while not self.finished_parsing():
             c = self.get_current_char()
             
@@ -41,8 +34,7 @@ class HTMLParser:
                     self.in_comment = False
                     self.advance_index(3)
                 continue    
-            
-            if c == "'" or c == "'":
+            if c == '"' or c == "'":
                 self.add_to_buffer(c)
                 self.advance_index()
                 if c == "'":
@@ -50,7 +42,6 @@ class HTMLParser:
                 else:
                     self.in_double_quote = not self.in_double_quote
                 continue
-
             if c == "<":
                 if self.should_ignore_meta_char():
                     self.add_to_buffer(c)
@@ -65,32 +56,26 @@ class HTMLParser:
                 self.in_tag = True
                 if self.buffer: self.add_text(self.buffer)
                 self.buffer = ""
-
+                self.advance_index()
             elif c == ">":
-                if in_script:
-                    text += c
-                    i+=1
+                if self.should_ignore_meta_char():
+                    self.add_to_buffer(c)
+                    self.advance_index()
                     continue
 
-                elif in_double_quote or in_single_quote:
-                    text+=c
-                    i+=1
-                    continue
-
-                in_tag = False
-                self.add_tag(text)
-                if text.startswith("script"):
-                    in_script = True
-                elif text.startswith("/script"):
-                    in_script = False
-                text = ""
-            
+                self.in_tag = False
+                self.add_tag(self.buffer)
+                if self.buffer_has_script_tag():
+                    self.update_script_vars()
+                self.buffer = ""
+                self.advance_index()
             else:
-                text += c
-            i+=1
+                self.add_to_buffer(c)
+                self.advance_index()
             
-        if not in_tag and text:
-            self.add_text(text)
+        if not self.in_tag and self.buffer:
+            self.add_text(self.buffer)
+        
         return self.finish()
     
     def add_text(self, text):
@@ -168,7 +153,7 @@ class HTMLParser:
         c = self.get_current_char()
         return c == '-' and  self.body[i:i+3] == "-->" and self.body[i-2:i] != "<!"
     
-    def is_open_comment(self, i):
+    def is_open_comment(self):
         i = self.body_index
         return self.body[i:i+4] == "<!--"
     
@@ -203,3 +188,12 @@ class HTMLParser:
         quotes_condition = self.in_tag and in_quotes
         script_condition = self.in_script and not self.is_close_script()
         return script_condition or quotes_condition
+    
+    def buffer_has_script_tag(self):
+        return self.buffer.startswith("script") or self.buffer.startswith("/script")
+
+    def update_script_vars(self):
+        if self.buffer.startswith("script"):
+            self.in_script = True
+        elif self.buffer.startswith("/script"):
+            self.in_script = False
