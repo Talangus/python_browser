@@ -53,6 +53,9 @@ class HTMLParser:
                     self.advance_index()
                     continue
                 
+                if self.is_close_script():
+                    self.in_script = False
+                    
                 self.in_tag = True
                 if self.buffer: self.add_text(self.buffer)
                 self.buffer = ""
