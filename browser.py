@@ -10,6 +10,7 @@ from utils import *
 from html_decode import html_decode
 from layout import Layout
 from html_parser import HTMLParser
+from source_html_parser import SourceHTMLParser
 
 class Browser:
     SCROLL_STEP = 100
@@ -38,8 +39,10 @@ class Browser:
     
     def load(self, url):
         body = url.request()
-        nodes = HTMLParser(body).parse()
+        parser = get_html_parser(body, url)
+        nodes = parser.parse()
         self.nodes = html_decode(nodes)
+        # print_tree(self.nodes)
         self.display_list = Layout(self.nodes,self.width).display_list
         self.draw() 
         
@@ -166,6 +169,12 @@ def parse_arguments():
     
     args = parser.parse_args()
     return args.url
+
+def get_html_parser(body, url):
+    if url.is_view_source:
+        return SourceHTMLParser(body)
+    else:
+        return HTMLParser(body)
 
 if __name__ == "__main__":
     
