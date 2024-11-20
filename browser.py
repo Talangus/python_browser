@@ -8,7 +8,8 @@ from cache import cache
 from coordinate import Coordinate
 from utils import *
 from html_decode import html_decode
-from layout import Layout
+from block_layout import BlockLayout
+from document_layout import DocumentLayout
 from html_parser import HTMLParser
 from source_html_parser import SourceHTMLParser
 
@@ -30,6 +31,7 @@ class Browser:
 
         self.scroll = 0
         self.images = []
+        self.display_list = []
 
         self.window.bind("<Down>", self.on_scrolldown)
         self.window.bind("<Up>", self.on_scrollup)
@@ -42,8 +44,10 @@ class Browser:
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
-        # print_tree(self.nodes)
-        self.display_list = Layout(self.nodes,self.width).display_list
+        self.document = DocumentLayout(self.nodes, self.width)
+        self.document.layout()
+        # print_tree(self.document)
+        paint_tree(self.document, self.display_list)
         self.draw() 
         
     def draw(self):
@@ -121,7 +125,9 @@ class Browser:
     def on_resize(self, event):
         self.width = event.width
         self.height = event.height
-        self.display_list = Layout(self.nodes,self.width).display_list
+        self.document = DocumentLayout(self.nodes, self.width)
+        self.document.layout()
+        paint_tree(self.document, self.display_list)
         self.draw()
 
     def handle_scrollbar(self):
@@ -175,6 +181,12 @@ def get_html_parser(body, url):
         return SourceHTMLParser(body)
     else:
         return HTMLParser(body)
+
+def paint_tree(layout_object, display_list):
+    display_list.extend(layout_object.paint())
+
+    for child in layout_object.children:
+        paint_tree(child, display_list)
 
 if __name__ == "__main__":
     
