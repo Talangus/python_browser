@@ -2,8 +2,6 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from element import Element
-# from document_layout import DocumentLayout
 
 class CustomError(Exception):
     pass
