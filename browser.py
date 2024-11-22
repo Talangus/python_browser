@@ -126,6 +126,7 @@ class Browser:
         self.width = event.width
         self.height = event.height
         self.document = DocumentLayout(self.nodes, self.width)
+        self.display_list = []
         self.document.layout()
         paint_tree(self.document, self.display_list)
         self.draw()
@@ -187,6 +188,9 @@ def paint_tree(layout_object, display_list):
 
     for child in layout_object.children:
         paint_tree(child, display_list)
+
+def is_document_layout(layout_object):
+    return type(layout_object) == DocumentLayout
 
 if __name__ == "__main__":
     

@@ -241,8 +241,3 @@ class BlockLayout:
         text_parts = re.findall(words_spaces_new_line_regex, text)
     
         return text_parts
-        
-
-
-    
-         
