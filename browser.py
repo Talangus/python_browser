@@ -53,16 +53,17 @@ class Browser:
     def draw(self):
         self.canvas.delete("all")
         self.handle_scrollbar()
-        for x, y, c, f in self.display_list:
-            if self.is_below_viewport(y): continue
-            if self.is_above_viewport(y): continue
-            self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
+        for cmd in self.display_list:
+            if self.is_below_viewport(cmd): continue
+            if self.is_above_viewport(cmd): continue
+            # self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
+            cmd.execute(self.scroll, self.canvas)
+
+    def is_below_viewport(self, cmd):
+        return cmd.top > self.scroll + self.height
     
-    def is_below_viewport(self, y):
-        return y > self.scroll + self.height
-    
-    def is_above_viewport(self,y):
-        return y + Browser.VSTEP < self.scroll
+    def is_above_viewport(self,cmd):
+        return cmd.bottom + Browser.VSTEP < self.scroll
 
     def draw_emoji(self, x, y, c):
         code_point = ord(c)
@@ -99,7 +100,7 @@ class Browser:
             return 0.001
         last_index = len(self.display_list) - 1
         last_item = self.display_list[last_index]
-        lowest_y = last_item[1]
+        lowest_y = last_item.bottom
         return lowest_y
 
     def on_scrollup(self, event):
