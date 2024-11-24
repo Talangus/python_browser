@@ -2,7 +2,6 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from element import Element
 
 class CustomError(Exception):
     pass

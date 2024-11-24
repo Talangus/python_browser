@@ -1,5 +1,7 @@
 from utils import *
 from element import Element
+from draw_text import DrawText
+from draw_rect import DrawRect
 import tkinter.font
 
 FONTS = {}
@@ -13,26 +15,92 @@ def get_font(size, weight, style, family):
             FONTS[key] = (font, label)
         return FONTS[key][0]
 
-class Layout:
+BLOCK_ELEMENTS = [
+    "html", "body", "article", "section", "nav", "aside",
+    "h1", "h2", "h3", "h4", "h5", "h6", "hgroup", "header",
+    "footer", "address", "p", "hr", "pre", "blockquote",
+    "ol", "ul", "menu", "li", "dl", "dt", "dd", "figure",
+    "figcaption", "main", "div", "table", "form", "fieldset",
+    "legend", "details", "summary"
+]
+
+class BlockLayout:
     HSTEP = 13
     VSTEP = 18
 
-    def __init__(self, nodes, width):
+    def __init__(self, node, parent, previous):
+        self.node = node
+        self.parent = parent
+        self.previous = previous
+        self.children = []
         self.display_list = []
-        self.width = width
-        self.cursor_x = Layout.HSTEP
-        self.cursor_y = Layout.VSTEP
-        self.weight = "normal"
-        self.style = "roman"
-        self.size = 12
-        self.font_family = DEFAULT_FONT
-        self.only_uppercase = False
-        self.current_tag = ''
-        self.current_tag_class = ''
-        self.preformat = False
-        self.line = []
-        self.recurse(nodes)
-        self.flush()
+        self.x = None
+        self.y = None
+        self.width = None
+        self.height = None
+        
+    def paint(self):
+        cmds = []
+        if isinstance(self.node, Element) and self.node.tag == "pre":
+            x2, y2 = self.x + self.width, self.y + self.height
+            rect = DrawRect(self.x, self.y, x2, y2, "gray")
+            cmds.append(rect)
+        if self.layout_mode() == "inline":
+            for x, y, word, font in self.display_list:
+                cmds.append(DrawText(x, y, word, font))
+        return cmds 
+    
+    def layout(self):
+        self.x = self.parent.x
+        self.width = self.parent.width
+
+        if self.previous:
+            self.y = self.previous.y + self.previous.height
+        else:
+            self.y = self.parent.y
+
+        mode = self.layout_mode()
+        if mode == "block":
+            previous = None
+            for child in self.node.children:
+                next = BlockLayout(child, self, previous)
+                self.children.append(next)
+                previous = next
+        else:
+            self.cursor_x = 0
+            self.cursor_y = 0
+            self.weight = "normal"
+            self.style = "roman"
+            self.size = 12
+            self.font_family = DEFAULT_FONT
+            self.only_uppercase = False
+            self.current_tag = ''
+            self.current_tag_class = ''
+            self.preformat = False
+
+            self.line = []
+            self.recurse(self.node)
+            self.flush()
+        
+        for child in self.children:
+            child.layout()
+
+        if mode == "block":
+            self.height = sum([child.height for child in self.children])
+        else: self.height = self.cursor_y
+
+
+    def layout_mode(self):
+        if isinstance(self.node, Text):
+            return "inline"
+        elif any([isinstance(child, Element) and child.tag in BLOCK_ELEMENTS
+                  for child in self.node.children]):
+            return "block"
+        elif self.node.children:
+            return "inline"
+        else:
+            return "block"
+
 
     def recurse(self, tree):
         if isinstance(tree, Text):
@@ -52,17 +120,20 @@ class Layout:
         max_ascent = max([metric["ascent"] for metric in metrics])
         baseline = self.cursor_y + 1.25 * max_ascent
         
-        for x, word, font, y_align in self.line:
+        for rel_x, word, font, y_align in self.line:
+            x = self.x + rel_x
+            y = self.y
+            
             if y_align:
                 top_alignment = baseline - max_ascent
-                y = top_alignment
+                y += top_alignment
             else:
-                y = baseline - font.metrics("ascent")
+                y += baseline - font.metrics("ascent")
             self.display_list.append((x, y, word, font))
             
         max_descent = max([metric["descent"] for metric in metrics])
         self.cursor_y = baseline + 1.25 * max_descent
-        self.cursor_x = Layout.HSTEP
+        self.cursor_x = 0
         self.line = []
             
     def word(self, word):
@@ -118,7 +189,7 @@ class Layout:
             "big": lambda: setattr(self, 'size', self.size - 4),
             "h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
             "sup": lambda: (setattr(self, 'current_tag', ""), setattr(self, 'size', 12)),
-            "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + Layout.VSTEP)),
+            "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
             "abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
             "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT)),
         }
@@ -141,10 +212,10 @@ class Layout:
         if self.preformat:
             return False
         w = font.measure(word)
-        return self.cursor_x + w > self.width - Layout.HSTEP
+        return self.cursor_x + w > self.width 
 
     def should_split_on_hypen(self, word, font):
-        indexes = Layout.get_soft_hyphen_positions(word)
+        indexes = BlockLayout.get_soft_hyphen_positions(word)
         if len(indexes) == 0:
             return False
         
@@ -158,7 +229,7 @@ class Layout:
         return indexes
 
     def split_on_hypen(self, word, font):
-        indexes = Layout.get_soft_hyphen_positions(word)
+        indexes = BlockLayout.get_soft_hyphen_positions(word)
         last_valid_split_index = indexes[0]
 
         for split_index in indexes:
@@ -180,8 +251,3 @@ class Layout:
         text_parts = re.findall(words_spaces_new_line_regex, text)
     
         return text_parts
-        
-
-
-    
-         

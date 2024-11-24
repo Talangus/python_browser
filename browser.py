@@ -8,7 +8,8 @@ from cache import cache
 from coordinate import Coordinate
 from utils import *
 from html_decode import html_decode
-from layout import Layout
+from block_layout import BlockLayout
+from document_layout import DocumentLayout
 from html_parser import HTMLParser
 from source_html_parser import SourceHTMLParser
 
@@ -30,6 +31,7 @@ class Browser:
 
         self.scroll = 0
         self.images = []
+        self.display_list = []
 
         self.window.bind("<Down>", self.on_scrolldown)
         self.window.bind("<Up>", self.on_scrollup)
@@ -42,23 +44,26 @@ class Browser:
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
-        # print_tree(self.nodes)
-        self.display_list = Layout(self.nodes,self.width).display_list
+        self.document = DocumentLayout(self.nodes, self.width)
+        self.document.layout()
+        # print_tree(self.document)
+        paint_tree(self.document, self.display_list)
         self.draw() 
         
     def draw(self):
         self.canvas.delete("all")
         self.handle_scrollbar()
-        for x, y, c, f in self.display_list:
-            if self.is_below_viewport(y): continue
-            if self.is_above_viewport(y): continue
-            self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
+        for cmd in self.display_list:
+            if self.is_below_viewport(cmd): continue
+            if self.is_above_viewport(cmd): continue
+            # self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
+            cmd.execute(self.scroll, self.canvas)
+
+    def is_below_viewport(self, cmd):
+        return cmd.top > self.scroll + self.height
     
-    def is_below_viewport(self, y):
-        return y > self.scroll + self.height
-    
-    def is_above_viewport(self,y):
-        return y + Browser.VSTEP < self.scroll
+    def is_above_viewport(self,cmd):
+        return cmd.bottom + Browser.VSTEP < self.scroll
 
     def draw_emoji(self, x, y, c):
         code_point = ord(c)
@@ -95,7 +100,7 @@ class Browser:
             return 0.001
         last_index = len(self.display_list) - 1
         last_item = self.display_list[last_index]
-        lowest_y = last_item[1]
+        lowest_y = last_item.bottom
         return lowest_y
 
     def on_scrollup(self, event):
@@ -121,7 +126,10 @@ class Browser:
     def on_resize(self, event):
         self.width = event.width
         self.height = event.height
-        self.display_list = Layout(self.nodes,self.width).display_list
+        self.document = DocumentLayout(self.nodes, self.width)
+        self.display_list = []
+        self.document.layout()
+        paint_tree(self.document, self.display_list)
         self.draw()
 
     def handle_scrollbar(self):
@@ -175,6 +183,15 @@ def get_html_parser(body, url):
         return SourceHTMLParser(body)
     else:
         return HTMLParser(body)
+
+def paint_tree(layout_object, display_list):
+    display_list.extend(layout_object.paint())
+
+    for child in layout_object.children:
+        paint_tree(child, display_list)
+
+def is_document_layout(layout_object):
+    return type(layout_object) == DocumentLayout
 
 if __name__ == "__main__":
     
