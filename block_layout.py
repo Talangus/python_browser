@@ -41,14 +41,33 @@ class BlockLayout:
         
     def paint(self):
         cmds = []
-        if isinstance(self.node, Element) and self.node.tag == "pre":
-            x2, y2 = self.x + self.width, self.y + self.height
-            rect = DrawRect(self.x, self.y, x2, y2, "gray")
-            cmds.append(rect)
+        cmds.extend(self.get_rectangels_cmds())
+        cmds.extend(self.get_text_cmds())
+            
+        return cmds 
+    
+    def get_text_cmds(self):
+        cmds = []
         if self.layout_mode() == "inline":
             for x, y, word, font in self.display_list:
-                cmds.append(DrawText(x, y, word, font))
-        return cmds 
+                    cmds.append(DrawText(x, y, word, font))
+        return cmds
+
+    def get_rectangels_cmds(self):
+        if not isinstance(self.node, Element):
+            return []
+        
+        rect_cmds = []
+        predicates = {"pre_element": lambda: self.node.tag == "pre",
+                    "link_bar": lambda: self.node.tag == "nav" and self.node.has_class("links")}
+        cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, self.x2, self.y2, "gray"),
+                  "link_bar": lambda: DrawRect(self.x, self.y, self.x2, self.y2, "light gray")}
+
+        for key in predicates:
+            if predicates[key]():
+                rect_cmds.append(cmd_gen[key]())
+
+        return rect_cmds
     
     def layout(self):
         self.x = self.parent.x
@@ -88,7 +107,8 @@ class BlockLayout:
         if mode == "block":
             self.height = sum([child.height for child in self.children])
         else: self.height = self.cursor_y
-
+        self.x2 = self.x + self.width
+        self.y2 = self.y + self.height
 
     def layout_mode(self):
         if isinstance(self.node, Text):

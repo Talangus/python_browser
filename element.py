@@ -10,7 +10,7 @@ class Element:
         return "<" + self.tag + ">"
 
     def has_class(self, class_name):
-        if self.attributes['class']:
+        if 'class' in self.attributes:
             return class_name in self.attributes['class']
 
         return False
