@@ -38,7 +38,19 @@ class BlockLayout:
         self.y = None
         self.width = None
         self.height = None
+        self.init_in_head()
+
+    def init_in_head(self):
+        if self.parent.in_head is not None:
+            self.in_head = self.parent.in_head
+            return
+
+        if self.node_is("html"):
+            self.in_head = None
+        else:    
+            self.in_head = self.node_is("head")
         
+
     def paint(self):
         cmds = []
         cmds.extend(self.get_rectangels_cmds())
@@ -57,11 +69,14 @@ class BlockLayout:
         if not isinstance(self.node, Element):
             return []
         
+        x2 = self.x + self.width
+        y2 = self.y + self.height
         rect_cmds = []
-        predicates = {"pre_element": lambda: self.node.tag == "pre",
-                    "link_bar": lambda: self.node.tag == "nav" and self.node.has_class("links")}
-        cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, self.x2, self.y2, "gray"),
-                  "link_bar": lambda: DrawRect(self.x, self.y, self.x2, self.y2, "light gray")}
+
+        predicates = {"pre_element": lambda: self.node_is("pre"),
+                    "link_bar": lambda: self.node_is("nav") and self.node.has_class("links")}
+        cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, x2, y2, "gray"),
+                  "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, "light gray")}
 
         for key in predicates:
             if predicates[key]():
@@ -69,7 +84,10 @@ class BlockLayout:
 
         return rect_cmds
     
-    def layout(self):
+    def node_is(self, tag):
+        return isinstance(self.node, Element) and self.node.tag == tag
+
+    def init_coordinates(self):
         self.x = self.parent.x
         self.width = self.parent.width
 
@@ -78,38 +96,51 @@ class BlockLayout:
         else:
             self.y = self.parent.y
 
-        mode = self.layout_mode()
-        if mode == "block":
-            previous = None
-            for child in self.node.children:
-                next = BlockLayout(child, self, previous)
-                self.children.append(next)
-                previous = next
-        else:
-            self.cursor_x = 0
-            self.cursor_y = 0
-            self.weight = "normal"
-            self.style = "roman"
-            self.size = 12
-            self.font_family = DEFAULT_FONT
-            self.only_uppercase = False
-            self.current_tag = ''
-            self.current_tag_class = ''
-            self.preformat = False
+    def init_children(self):
+        previous = None
+        for child in self.node.children:
+            next = BlockLayout(child, self, previous)
+            self.children.append(next)
+            previous = next
+    
+    def init_text_properties(self):
+        self.cursor_x = 0
+        self.cursor_y = 0
+        self.weight = "normal"
+        self.style = "roman"
+        self.size = 12
+        self.font_family = DEFAULT_FONT
+        self.only_uppercase = False
+        self.current_tag = ''
+        self.current_tag_class = ''
+        self.preformat = False
 
+    def layout_text(self):
+        self.init_text_properties()
+        if not self.in_head:
             self.line = []
             self.recurse(self.node)
             self.flush()
-        
-        for child in self.children:
-            child.layout()
 
+    def calculate_hight(self,mode):
         if mode == "block":
             self.height = sum([child.height for child in self.children])
         else: self.height = self.cursor_y
-        self.x2 = self.x + self.width
-        self.y2 = self.y + self.height
 
+    def layout(self):
+        self.init_coordinates()
+        mode = self.layout_mode()
+
+        if mode == "block":
+            self.init_children()
+        else:
+            self.layout_text()
+            
+        for child in self.children:
+            child.layout()
+
+        self.calculate_hight(mode)
+        
     def layout_mode(self):
         if isinstance(self.node, Text):
             return "inline"
@@ -120,7 +151,6 @@ class BlockLayout:
             return "inline"
         else:
             return "block"
-
 
     def recurse(self, tree):
         if isinstance(tree, Text):
