@@ -5,7 +5,11 @@ from draw_rect import DrawRect
 import tkinter.font
 
 FONTS = {}
-DEFAULT_FONT = "Arial"
+DEFAULT_FONT_FAMILY = "Arial"
+DEFAULT_WEIGHT = "normal"
+DEFAULT_STYLE= "roman"
+DEFAULT_SIZE = 12
+
 def get_font(size, weight, style, family):
         key = (size, weight, style, family)
         if key not in FONTS:
@@ -14,6 +18,9 @@ def get_font(size, weight, style, family):
             label = tkinter.Label(font=font)
             FONTS[key] = (font, label)
         return FONTS[key][0]
+
+def get_default_font():
+    return get_font(DEFAULT_SIZE,DEFAULT_WEIGHT,DEFAULT_STYLE, DEFAULT_FONT_FAMILY)
 
 BLOCK_ELEMENTS = [
     "html", "body", "article", "section", "nav", "aside",
@@ -74,9 +81,11 @@ class BlockLayout:
         rect_cmds = []
 
         predicates = {"pre_element": lambda: self.node_is("pre"),
-                    "link_bar": lambda: self.node_is("nav") and self.node.has_class("links")}
+                    "link_bar": lambda: self.node_is("nav") and self.node.has_class("links"),
+                    "li": lambda: self.node_is("li")}
         cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, x2, y2, "gray"),
-                  "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, "light gray")}
+                  "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, "light gray"),
+                  "li": lambda: self.get_bulletpoint_cmd()}
 
         for key in predicates:
             if predicates[key]():
@@ -87,6 +96,22 @@ class BlockLayout:
     def node_is(self, tag):
         return isinstance(self.node, Element) and self.node.tag == tag
 
+    def get_bulletpoint_cmd(self):
+        bullet_char = "•"
+        default_font = get_default_font()
+
+        width = default_font.measure(bullet_char)
+        ascent = default_font.metrics("ascent")  
+        descent = default_font.metrics("descent")  
+        line_height = ascent + descent  
+        square_size = width  
+        
+        top_offset = (line_height - square_size) // 2
+        x1, y1 = self.x, self.y + top_offset
+        x2, y2 = x1 + square_size, y1 + square_size
+
+        return DrawRect(x1, y1, x2, y2, "white")
+    
     def init_coordinates(self):
         self.x = self.parent.x
         self.width = self.parent.width
@@ -104,16 +129,23 @@ class BlockLayout:
             previous = next
     
     def init_text_properties(self):
-        self.cursor_x = 0
+        self.init_cursor_x()
         self.cursor_y = 0
-        self.weight = "normal"
-        self.style = "roman"
-        self.size = 12
-        self.font_family = DEFAULT_FONT
+        self.weight = DEFAULT_WEIGHT
+        self.style = DEFAULT_STYLE
+        self.size = DEFAULT_SIZE
+        self.font_family = DEFAULT_FONT_FAMILY
         self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
         self.preformat = False
+
+    def init_cursor_x(self):
+        if self.node_is("li"):
+            self.cursor_x = self.VSTEP
+        else:
+            self.cursor_x = 0        
+
 
     def layout_text(self):
         self.init_text_properties()
@@ -241,7 +273,7 @@ class BlockLayout:
             "sup": lambda: (setattr(self, 'current_tag', ""), setattr(self, 'size', 12)),
             "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
             "abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
-            "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT)),
+            "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT_FAMILY)),
         }
         self.handle_tag(element_node, closing_tag_handlers)
 
