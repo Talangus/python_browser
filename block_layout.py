@@ -82,10 +82,12 @@ class BlockLayout:
 
         predicates = {"pre_element": lambda: self.node_is("pre"),
                     "link_bar": lambda: self.node_is("nav") and self.node.has_class("links"),
-                    "li": lambda: self.node_is("li")}
+                    "li": lambda: self.node_is("li"),
+                    "toc": lambda: self.is_toc_nav_element()}
         cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, x2, y2, "gray"),
                   "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, "light gray"),
-                  "li": lambda: self.get_bulletpoint_cmd()}
+                  "li": lambda: self.get_bulletpoint_cmd(),
+                  "toc": lambda: DrawRect(self.x, self.y, x2, y2, "gray")}
 
         for key in predicates:
             if predicates[key]():
@@ -115,11 +117,26 @@ class BlockLayout:
     def init_coordinates(self):
         self.x = self.parent.x
         self.width = self.parent.width
+        self.init_y()
+        
 
+    # def init_x(self):
+    #     if self.is_toc_list_element():
+    #         self.x = self.parent.x + 8 * self.VSTEP
+    #     else:
+    #         self.x = self.parent.x
+
+    def init_y(self):
         if self.previous:
-            self.y = self.previous.y + self.previous.height
+            y = self.previous.y + self.previous.height
         else:
-            self.y = self.parent.y
+            y = self.parent.y
+        
+        if self.is_toc_list_element():
+            y += 2 * self.VSTEP
+        
+        self.y = y
+        
 
     def init_children(self):
         previous = None
@@ -146,6 +163,11 @@ class BlockLayout:
         else:
             self.cursor_x = 0        
 
+    # def init_cursor_y(self):
+    #     if self.node_is("nav") and self.node.has_attribute("id","toc"):
+    #         self.cursor_y = 20* self.HSTEP
+    #     else:
+    #         self.cursor_y = 0
 
     def layout_text(self):
         self.init_text_properties()
@@ -333,3 +355,9 @@ class BlockLayout:
         text_parts = re.findall(words_spaces_new_line_regex, text)
     
         return text_parts
+    
+    def is_toc_nav_element(self):
+        return self.node_is("nav") and self.node.has_attribute("id","toc")
+    
+    def is_toc_list_element(self):
+        return self.node_is('ul') and self.parent.is_toc_nav_element()

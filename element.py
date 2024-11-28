@@ -15,6 +15,12 @@ class Element:
 
         return False
 
+    def has_attribute(self,key, value):
+        if key in self.attributes:
+            return self.attributes[key] == value
+        
+        return False
+
     def is_closing_tag_buffer(buffer):
         return buffer.startswith('/')
     
