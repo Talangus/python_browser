@@ -28,3 +28,6 @@ class DocumentLayout:
     
     def node_is(self, tag):
         return self.node.tag == tag
+    
+    def is_toc_list_element(self):
+        return False

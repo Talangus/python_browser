@@ -47,6 +47,9 @@ class BlockLayout:
         self.height = None
         self.init_in_head()
 
+        if self.is_toc_nav_element():
+            self.add_toc_text()
+
     def init_in_head(self):
         if self.parent.in_head is not None:
             self.in_head = self.parent.in_head
@@ -118,22 +121,15 @@ class BlockLayout:
         self.x = self.parent.x
         self.width = self.parent.width
         self.init_y()
-        
-
-    # def init_x(self):
-    #     if self.is_toc_list_element():
-    #         self.x = self.parent.x + 8 * self.VSTEP
-    #     else:
-    #         self.x = self.parent.x
 
     def init_y(self):
         if self.previous:
             y = self.previous.y + self.previous.height
         else:
             y = self.parent.y
-        
-        if self.is_toc_list_element():
-            y += 2 * self.VSTEP
+
+        if self.is_toc_first_element():
+            y += 0.5 *self.VSTEP
         
         self.y = y
         
@@ -161,13 +157,14 @@ class BlockLayout:
         if self.node_is("li"):
             self.cursor_x = self.VSTEP
         else:
-            self.cursor_x = 0        
+            self.cursor_x = 0
 
-    # def init_cursor_y(self):
-    #     if self.node_is("nav") and self.node.has_attribute("id","toc"):
-    #         self.cursor_y = 20* self.HSTEP
-    #     else:
-    #         self.cursor_y = 0
+    def init_cursor_y(self):
+        if self.is_toc_first_element():
+            self.cursor_y = self.VSTEP
+        else:
+            self.cursor_y = 0
+          
 
     def layout_text(self):
         self.init_text_properties()
@@ -179,6 +176,10 @@ class BlockLayout:
     def calculate_hight(self,mode):
         if mode == "block":
             self.height = sum([child.height for child in self.children])
+            
+            if len(self.children) > 0:
+                self.height += self.get_child_vertical_distance()
+
         else: self.height = self.cursor_y
 
     def layout(self):
@@ -361,3 +362,16 @@ class BlockLayout:
     
     def is_toc_list_element(self):
         return self.node_is('ul') and self.parent.is_toc_nav_element()
+
+    def is_toc_first_element(self):
+        return self.previous is None and self.parent.is_toc_list_element()
+    
+    def get_child_vertical_distance(self):
+        return self.children[0].y - self.y
+    
+    def add_toc_text(self):
+        if len(self.node.children) > 0:
+            first = self.node.children[0]
+            if not isinstance(first, Text) or (isinstance(first, Text) and first.text != '\n  Table Of Content\n'):
+                self.node.children.insert(0,Text('\n  Table Of Content\n', self.node))
+        
