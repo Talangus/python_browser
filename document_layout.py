@@ -12,6 +12,7 @@ class DocumentLayout:
         self.y = None
         self.width = width - 2 * self.HSTEP
         self.height = None
+        self.in_head = None
         
 
     def layout(self):
@@ -24,3 +25,9 @@ class DocumentLayout:
 
     def paint(self):
         return []
+    
+    def node_is(self, tag):
+        return self.node.tag == tag
+    
+    def is_toc_list_element(self):
+        return False

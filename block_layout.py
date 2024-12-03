@@ -5,7 +5,11 @@ from draw_rect import DrawRect
 import tkinter.font
 
 FONTS = {}
-DEFAULT_FONT = "Arial"
+DEFAULT_FONT_FAMILY = "Arial"
+DEFAULT_WEIGHT = "normal"
+DEFAULT_STYLE= "roman"
+DEFAULT_SIZE = 12
+
 def get_font(size, weight, style, family):
         key = (size, weight, style, family)
         if key not in FONTS:
@@ -14,6 +18,9 @@ def get_font(size, weight, style, family):
             label = tkinter.Label(font=font)
             FONTS[key] = (font, label)
         return FONTS[key][0]
+
+def get_default_font():
+    return get_font(DEFAULT_SIZE,DEFAULT_WEIGHT,DEFAULT_STYLE, DEFAULT_FONT_FAMILY)
 
 BLOCK_ELEMENTS = [
     "html", "body", "article", "section", "nav", "aside",
@@ -38,58 +45,157 @@ class BlockLayout:
         self.y = None
         self.width = None
         self.height = None
+        self.init_in_head()
+
+        if self.is_toc_nav_element():
+            self.add_toc_text()
+
+    def init_in_head(self):
+        if self.parent.in_head is not None:
+            self.in_head = self.parent.in_head
+            return
+
+        if self.node_is("html"):
+            self.in_head = None
+        else:    
+            self.in_head = self.node_is("head")
         
+
     def paint(self):
         cmds = []
-        if isinstance(self.node, Element) and self.node.tag == "pre":
-            x2, y2 = self.x + self.width, self.y + self.height
-            rect = DrawRect(self.x, self.y, x2, y2, "gray")
-            cmds.append(rect)
-        if self.layout_mode() == "inline":
-            for x, y, word, font in self.display_list:
-                cmds.append(DrawText(x, y, word, font))
+        cmds.extend(self.get_rectangels_cmds())
+        cmds.extend(self.get_text_cmds())
+            
         return cmds 
     
-    def layout(self):
+    def get_text_cmds(self):
+        cmds = []
+        if self.layout_mode() == "inline":
+            for x, y, word, font in self.display_list:
+                    cmds.append(DrawText(x, y, word, font))
+        return cmds
+
+    def get_rectangels_cmds(self):
+        if not isinstance(self.node, Element):
+            return []
+        
+        x2 = self.x + self.width
+        y2 = self.y + self.height
+        rect_cmds = []
+
+        predicates = {"pre_element": lambda: self.node_is("pre"),
+                    "link_bar": lambda: self.node_is("nav") and self.node.has_class("links"),
+                    "li": lambda: self.node_is("li"),
+                    "toc": lambda: self.is_toc_nav_element()}
+        cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, x2, y2, "gray"),
+                  "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, "light gray"),
+                  "li": lambda: self.get_bulletpoint_cmd(),
+                  "toc": lambda: DrawRect(self.x, self.y, x2, y2, "gray")}
+
+        for key in predicates:
+            if predicates[key]():
+                rect_cmds.append(cmd_gen[key]())
+
+        return rect_cmds
+    
+    def node_is(self, tag):
+        return isinstance(self.node, Element) and self.node.tag == tag
+
+    def get_bulletpoint_cmd(self):
+        bullet_char = "•"
+        default_font = get_default_font()
+
+        width = default_font.measure(bullet_char)
+        ascent = default_font.metrics("ascent")  
+        descent = default_font.metrics("descent")  
+        line_height = ascent + descent  
+        square_size = width  
+        
+        top_offset = (line_height - square_size) // 2
+        x1, y1 = self.x, self.y + top_offset
+        x2, y2 = x1 + square_size, y1 + square_size
+
+        return DrawRect(x1, y1, x2, y2, "white")
+    
+    def init_coordinates(self):
         self.x = self.parent.x
         self.width = self.parent.width
+        self.init_y()
 
+    def init_y(self):
         if self.previous:
-            self.y = self.previous.y + self.previous.height
+            y = self.previous.y + self.previous.height
         else:
-            self.y = self.parent.y
+            y = self.parent.y
 
-        mode = self.layout_mode()
-        if mode == "block":
-            previous = None
-            for child in self.node.children:
-                next = BlockLayout(child, self, previous)
-                self.children.append(next)
-                previous = next
+        if self.is_toc_first_element():
+            y += 0.5 *self.VSTEP
+        
+        self.y = y
+        
+
+    def init_children(self):
+        previous = None
+        for child in self.node.children:
+            next = BlockLayout(child, self, previous)
+            self.children.append(next)
+            previous = next
+    
+    def init_text_properties(self):
+        self.init_cursor_x()
+        self.cursor_y = 0
+        self.weight = DEFAULT_WEIGHT
+        self.style = DEFAULT_STYLE
+        self.size = DEFAULT_SIZE
+        self.font_family = DEFAULT_FONT_FAMILY
+        self.only_uppercase = False
+        self.current_tag = ''
+        self.current_tag_class = ''
+        self.preformat = False
+
+    def init_cursor_x(self):
+        if self.node_is("li"):
+            self.cursor_x = self.VSTEP
         else:
             self.cursor_x = 0
-            self.cursor_y = 0
-            self.weight = "normal"
-            self.style = "roman"
-            self.size = 12
-            self.font_family = DEFAULT_FONT
-            self.only_uppercase = False
-            self.current_tag = ''
-            self.current_tag_class = ''
-            self.preformat = False
 
+    def init_cursor_y(self):
+        if self.is_toc_first_element():
+            self.cursor_y = self.VSTEP
+        else:
+            self.cursor_y = 0
+          
+
+    def layout_text(self):
+        self.init_text_properties()
+        if not self.in_head:
             self.line = []
             self.recurse(self.node)
             self.flush()
-        
+
+    def calculate_hight(self,mode):
+        if mode == "block":
+            self.height = sum([child.height for child in self.children])
+            
+            if len(self.children) > 0:
+                self.height += self.get_child_vertical_distance()
+
+        else: self.height = self.cursor_y
+
+    def layout(self):
+        self.init_coordinates()
+        mode = self.layout_mode()
+
+        if mode == "block":
+            self.init_children()
+        else:
+            self.layout_text()
+            
         for child in self.children:
             child.layout()
 
-        if mode == "block":
-            self.height = sum([child.height for child in self.children])
-        else: self.height = self.cursor_y
-
-
+        self.calculate_hight(mode)
+        
     def layout_mode(self):
         if isinstance(self.node, Text):
             return "inline"
@@ -100,7 +206,6 @@ class BlockLayout:
             return "inline"
         else:
             return "block"
-
 
     def recurse(self, tree):
         if isinstance(tree, Text):
@@ -191,7 +296,7 @@ class BlockLayout:
             "sup": lambda: (setattr(self, 'current_tag', ""), setattr(self, 'size', 12)),
             "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
             "abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
-            "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT)),
+            "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT_FAMILY)),
         }
         self.handle_tag(element_node, closing_tag_handlers)
 
@@ -251,3 +356,22 @@ class BlockLayout:
         text_parts = re.findall(words_spaces_new_line_regex, text)
     
         return text_parts
+    
+    def is_toc_nav_element(self):
+        return self.node_is("nav") and self.node.has_attribute("id","toc")
+    
+    def is_toc_list_element(self):
+        return self.node_is('ul') and self.parent.is_toc_nav_element()
+
+    def is_toc_first_element(self):
+        return self.previous is None and self.parent.is_toc_list_element()
+    
+    def get_child_vertical_distance(self):
+        return self.children[0].y - self.y
+    
+    def add_toc_text(self):
+        if len(self.node.children) > 0:
+            first = self.node.children[0]
+            if not isinstance(first, Text) or (isinstance(first, Text) and first.text != '\n  Table Of Content\n'):
+                self.node.children.insert(0,Text('\n  Table Of Content\n', self.node))
+        

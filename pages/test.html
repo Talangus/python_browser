@@ -1,10 +1,72 @@
-<html>
+<!DOCTYPE html>
+<html lang="en-US" xml:lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <link rel="prefetch" href="https://fonts.gstatic.com/s/lora/v32/0QI6MX1D_JOuGQbT0gvTJPa787weuxJBkq0.woff2" as="font" type="font/woff2">
+  <link rel="prefetch" href="https://fonts.gstatic.com/s/vollkorn/v22/0ybgGDoxxrvAnPhYGzMlQLzuMasz6Df2MHGeHmmc.woff2" as="font" type="font/woff2">
+  <link rel="prefetch" href="https://fonts.gstatic.com/s/vollkorn/v22/0ybuGDoxxrvAnPhYGxksckM2WMCpRjDj-DJGWlmeObQ.woff2" as="font" type="font/woff2">
+  <link rel="prefetch" href="https://fonts.gstatic.com/s/lora/v32/0QI8MX1D_JOuMw_hLdO6T2wV9KnW-MoFoq92nA.woff2" as="font" type="font/woff2">
+  <link rel="prefetch" href="https://fonts.gstatic.com/s/spectral/v5/rnCr-xNNww_2s0amA9M5knjsS_ul.woff2" as="font" type="font/woff2">
+  <meta name="color-scheme" content="dark light">
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes" />
 
-<head></head>
+
+  <link rel="prev" href="html.html" />
+  <link rel="next" href="styles.html" />
+
+  <link rel="stylesheet" href="book.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Vollkorn%7CLora&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Vollkorn:400i%7CLora:400i&display=swap" />
+  <link rel="alternate" type="application/rss+xml" href="rss.xml" title="Web Browser Engineering">
+  <link rel="shortcut icon" href="im/favicon.ico">
+
+  <title>Laying Out Pages | Web Browser Engineering</title>
+
+</head>
 
 <body>
-    <p> <big>big_text</big> and <small>small_text</small> </p>
-    <p>re</p>
-    
-</body>
-    </html>
+
+
+<header>
+<h1 class="title">Laying Out Pages</h1>
+<a href="https://twitter.com/browserbook">Twitter</a> ·
+<a href="https://browserbook.substack.com/">Blog</a> ·
+<a href="https://patreon.com/browserengineering">Patreon</a> ·
+<a href="https://github.com/browserengineering/book/discussions">Discussions</a>
+</header>
+
+<nav class="links">
+  Chapter 5 of <a href="index.html" title="Table of Contents">Web Browser Engineering</a>.
+  <a rel="prev" title="Previous chapter" href="html.html">&lt;</a>
+  <a rel="next" title="Next chapter" href="styles.html">&gt;</a>
+</nav>
+
+
+<aside class="ad">
+  <div class="wide">
+    <img src="im/cover.jpg" alt="The cover design for Web Browser Engineering, published by Oxford University Press. Click the cover to pre-order.">
+    <a class="preorder" href="https://global.oup.com/academic/product/web-browser-engineering-9780198913863">Preorder »</a>
+  </div>
+  <p class="narrow">
+    <span><i>Web Browser Engineering</i> will be out soon.</span>
+    <a href="https://global.oup.com/academic/product/web-browser-engineering-9780198913863">Pre-order now »</a>
+  </p>
+</aside>
+
+
+<nav id="toc">
+<ul>
+<li><a href="#the-layout-tree" id="toc-the-layout-tree">The Layout
+Tree</a></li>
+<li><a href="#block-layout" id="toc-block-layout">Block Layout</a></li>
+<li><a href="#size-and-position" id="toc-size-and-position">Size and
+Position</a></li>
+<li><a href="#recursive-painting" id="toc-recursive-painting">Recursive
+Painting</a></li>
+<li><a href="#backgrounds" id="toc-backgrounds">Backgrounds</a></li>
+<li><a href="#summary" id="toc-summary">Summary</a></li>
+<li><a href="#outline" id="toc-outline">Outline</a></li>
+<li><a href="#exercises" id="toc-exercises">Exercises</a></li>
+</ul>
+</nav>
