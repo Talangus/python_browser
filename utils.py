@@ -71,6 +71,12 @@ def is_paragraph_break(lines_queue):
     next_line = lines_queue[0]
     return next_line == ''
 
+def tree_to_list(tree, list):
+    list.append(tree)
+    for child in tree.children:
+        tree_to_list(child, list)
+    return list
+
 def print_tree(node, indent=0):
     print(" " * indent, node)
     for child in node.children:

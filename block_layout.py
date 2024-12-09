@@ -79,6 +79,7 @@ class BlockLayout:
         if not isinstance(self.node, Element):
             return []
         
+        bgcolor = self.node.style.get("background-color", "transparent")
         x2 = self.x + self.width
         y2 = self.y + self.height
         rect_cmds = []
@@ -87,14 +88,17 @@ class BlockLayout:
                     "link_bar": lambda: self.node_is("nav") and self.node.has_class("links"),
                     "li": lambda: self.node_is("li"),
                     "toc": lambda: self.is_toc_nav_element()}
-        cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, x2, y2, "gray"),
-                  "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, "light gray"),
+        cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, x2, y2, bgcolor),
+                  "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, bgcolor),
                   "li": lambda: self.get_bulletpoint_cmd(),
-                  "toc": lambda: DrawRect(self.x, self.y, x2, y2, "gray")}
+                  "toc": lambda: DrawRect(self.x, self.y, x2, y2, bgcolor)}
 
         for key in predicates:
-            if predicates[key]():
+            if predicates[key]() and bgcolor != "transparent": #need to split drawing background vs drawing a shape like bulletpoint
                 rect_cmds.append(cmd_gen[key]())
+
+        if bgcolor != "transparent":
+            rect_cmds.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
 
         return rect_cmds
     
