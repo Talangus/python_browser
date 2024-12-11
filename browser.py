@@ -28,7 +28,8 @@ class Browser:
         self.canvas = tkinter.Canvas(
             self.window, 
             width=self.width,
-            height=self.height
+            height=self.height,
+            bg="white"
         )
         self.canvas.pack(fill="both", expand=1)
 
@@ -49,7 +50,7 @@ class Browser:
         self.nodes = html_decode(nodes)
         rules = self.DEFAULT_STYLE_SHEET.copy()
         rules.extend(self.get_css_rules(url))
-        style(self.nodes, rules)
+        style(self.nodes, sorted(rules, key=cascade_priority))
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         # print_tree(self.document)
@@ -188,7 +189,7 @@ class Browser:
             style_url = url.resolve(link)
             try:
                 body = style_url.request()
-                rules.append(CSSParser(body).parse())
+                rules.extend(CSSParser(body).parse())
             except:
                 continue
         

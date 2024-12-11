@@ -71,8 +71,8 @@ class BlockLayout:
     def get_text_cmds(self):
         cmds = []
         if self.layout_mode() == "inline":
-            for x, y, word, font in self.display_list:
-                    cmds.append(DrawText(x, y, word, font))
+            for x, y, word, font, color in self.display_list:
+                    cmds.append(DrawText(x, y, word, font, color))
         return cmds
 
     def get_rectangels_cmds(self):
@@ -148,10 +148,11 @@ class BlockLayout:
     def init_text_properties(self):
         self.init_cursor_x()
         self.cursor_y = 0
-        self.weight = DEFAULT_WEIGHT
-        self.style = DEFAULT_STYLE
-        self.size = DEFAULT_SIZE
-        self.font_family = DEFAULT_FONT_FAMILY
+        self.weight = self.node.style["font-weight"]
+        self.style = self.node.style["font-style"]
+        if style == "normal": style = "roman"
+        self.size = int(float(self.node.style["font-size"][:-2]) * .75)
+        self.font_family = self.node.style["font-family"]
         self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
@@ -216,7 +217,7 @@ class BlockLayout:
             if self.should_align_horizontal():
                 self.cursor_x = self.get_centered_cursor_x(tree.text)
             for word in self.split_text(tree.text):
-                self.word(word)
+                self.word(tree, word)
         else:
             self.open_tag(tree)
             for child in tree.children:
@@ -229,7 +230,7 @@ class BlockLayout:
         max_ascent = max([metric["ascent"] for metric in metrics])
         baseline = self.cursor_y + 1.25 * max_ascent
         
-        for rel_x, word, font, y_align in self.line:
+        for rel_x, word, font, y_align, color in self.line:
             x = self.x + rel_x
             y = self.y
             
@@ -238,7 +239,7 @@ class BlockLayout:
                 y += top_alignment
             else:
                 y += baseline - font.metrics("ascent")
-            self.display_list.append((x, y, word, font))
+            self.display_list.append((x, y, word, font, color))
             
         max_descent = max([metric["descent"] for metric in metrics])
         self.cursor_y = baseline + 1.25 * max_descent
@@ -251,6 +252,7 @@ class BlockLayout:
             return
         
         font = get_font(self.size, self.weight, self.style, self.font_family)
+        color = self.node.style["color"]
         if self.only_uppercase:
             word = word.upper()
         w = font.measure(word)
@@ -258,13 +260,13 @@ class BlockLayout:
         if self.passed_horizontal_border(word, font):
             if self.should_split_on_hypen(word, font):
                 before_split, after_split = self.split_on_hypen(word, font)
-                self.line.append((self.cursor_x, before_split, font, self.should_align_vertical()))
+                self.line.append((self.cursor_x, before_split, font, self.should_align_vertical(), color))
                 self.flush()
                 self.word(after_split)
                 return
             else: self.flush()
 
-        self.line.append((self.cursor_x, word, font, self.should_align_vertical()))
+        self.line.append((self.cursor_x, word, font, self.should_align_vertical(), color))
         self.cursor_x += w + font.measure(" ")
 
     def handle_tag(self, element_node, tag_handlers):
@@ -278,29 +280,21 @@ class BlockLayout:
     
     def open_tag(self, element_node):
         opening_tag_handlers = {
-            "i": lambda: setattr(self, 'style', 'italic'),
-            "b": lambda: setattr(self, 'weight', 'bold'),
-            "small": lambda: setattr(self, 'size', self.size - 2),
-            "big": lambda: setattr(self, 'size', self.size + 4),
             "br": self.flush,
             "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
-            "sup": lambda: (setattr(self, 'current_tag', "sup"), setattr(self, 'size', 6)),
-            "abbr": lambda: (setattr(self, 'size', self.size - 4), setattr(self, 'weight', 'bold'), setattr(self, 'only_uppercase', True)),
-            "pre": lambda: (setattr(self, 'preformat', True), setattr(self, 'font_family', "IBM Plex Mono")),
+            "sup": lambda: (setattr(self, 'current_tag', "sup")),
+            "abbr": lambda: (setattr(self, 'only_uppercase', True)),
+            "pre": lambda: (setattr(self, 'preformat', True)),
         }
         self.handle_tag(element_node, opening_tag_handlers)
 
     def close_tag(self, element_node):
         closing_tag_handlers = {
-            "i": lambda: setattr(self, 'style', 'roman'),
-            "b": lambda: setattr(self, 'weight', 'normal'),
-            "small": lambda: setattr(self, 'size', self.size + 2),
-            "big": lambda: setattr(self, 'size', self.size - 4),
             "h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
-            "sup": lambda: (setattr(self, 'current_tag', ""), setattr(self, 'size', 12)),
+            "sup": lambda: (setattr(self, 'current_tag', "")),
             "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
-            "abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
-            "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT_FAMILY)),
+            "abbr": lambda: (setattr(self, 'only_uppercase', False)),
+            "pre": lambda: (self.flush(), setattr(self, 'preformat', False)),
         }
         self.handle_tag(element_node, closing_tag_handlers)
 
