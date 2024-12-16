@@ -12,11 +12,14 @@ from block_layout import BlockLayout
 from document_layout import DocumentLayout
 from html_parser import HTMLParser
 from source_html_parser import SourceHTMLParser
+from css_parser import style, CSSParser
+from element import Element
 
 class Browser:
     SCROLL_STEP = 100
     HSTEP = 13
     VSTEP = 18
+    DEFAULT_STYLE_SHEET = CSSParser(open("browser.css").read()).parse()
     
     def __init__(self):
         self.width = 800
@@ -25,7 +28,8 @@ class Browser:
         self.canvas = tkinter.Canvas(
             self.window, 
             width=self.width,
-            height=self.height
+            height=self.height,
+            bg="white"
         )
         self.canvas.pack(fill="both", expand=1)
 
@@ -44,6 +48,9 @@ class Browser:
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
+        rules = self.DEFAULT_STYLE_SHEET.copy()
+        rules.extend(self.get_css_rules(url))
+        style(self.nodes, sorted(rules, key=cascade_priority))
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         # print_tree(self.document)
@@ -166,6 +173,30 @@ class Browser:
         top_left = Coordinate(self.width - Browser.VSTEP, fit_to_screen_top)
         return top_left
     
+    def get_css_links(self):
+        links = []
+        for node in tree_to_list(self.nodes, []):
+            if isinstance(node, Element) and node.tag == "link"\
+            and node.attributes.get("rel") == "stylesheet"\
+            and "href" in node.attributes:
+                links.append(node.attributes["href"])
+        return links
+
+    def get_css_rules(self, url):
+        rules = []
+        links = self.get_css_links()
+        for link in links:
+            style_url = url.resolve(link)
+            try:
+                body = style_url.request()
+                new_rules = CSSParser(body).parse()
+                rules.extend(new_rules)
+            except:
+                continue
+        
+        return rules
+            
+        
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Simple python browser.")
     

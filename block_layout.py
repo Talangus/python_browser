@@ -22,6 +22,15 @@ def get_font(size, weight, style, family):
 def get_default_font():
     return get_font(DEFAULT_SIZE,DEFAULT_WEIGHT,DEFAULT_STYLE, DEFAULT_FONT_FAMILY)
 
+def get_html_node_font(node):
+    weight = node.style["font-weight"]
+    style = node.style["font-style"]
+    if style == "normal": style = "roman"
+    size = int(float(node.style["font-size"][:-2]) * .75)
+    font_family = node.style["font-family"]
+
+    return get_font(size, weight, style, font_family)
+
 BLOCK_ELEMENTS = [
     "html", "body", "article", "section", "nav", "aside",
     "h1", "h2", "h3", "h4", "h5", "h6", "hgroup", "header",
@@ -46,10 +55,7 @@ class BlockLayout:
         self.width = None
         self.height = None
         self.init_in_head()
-
-        if self.is_toc_nav_element():
-            self.add_toc_text()
-
+       
     def init_in_head(self):
         if self.parent.in_head is not None:
             self.in_head = self.parent.in_head
@@ -71,30 +77,28 @@ class BlockLayout:
     def get_text_cmds(self):
         cmds = []
         if self.layout_mode() == "inline":
-            for x, y, word, font in self.display_list:
-                    cmds.append(DrawText(x, y, word, font))
+            for x, y, word, font, color in self.display_list:
+                    cmds.append(DrawText(x, y, word, font, color))
         return cmds
 
     def get_rectangels_cmds(self):
         if not isinstance(self.node, Element):
             return []
         
+        bgcolor = self.node.style.get("background-color", "transparent")
         x2 = self.x + self.width
         y2 = self.y + self.height
         rect_cmds = []
 
-        predicates = {"pre_element": lambda: self.node_is("pre"),
-                    "link_bar": lambda: self.node_is("nav") and self.node.has_class("links"),
-                    "li": lambda: self.node_is("li"),
-                    "toc": lambda: self.is_toc_nav_element()}
-        cmd_gen ={"pre_element":lambda: DrawRect(self.x, self.y, x2, y2, "gray"),
-                  "link_bar": lambda: DrawRect(self.x, self.y, x2, y2, "light gray"),
-                  "li": lambda: self.get_bulletpoint_cmd(),
-                  "toc": lambda: DrawRect(self.x, self.y, x2, y2, "gray")}
+        predicates = {"li": lambda: self.node_is("li")}
+        cmd_gen ={"li": lambda: self.get_bulletpoint_cmd()}
 
         for key in predicates:
             if predicates[key]():
                 rect_cmds.append(cmd_gen[key]())
+
+        if bgcolor != "transparent":
+            rect_cmds.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
 
         return rect_cmds
     
@@ -103,19 +107,19 @@ class BlockLayout:
 
     def get_bulletpoint_cmd(self):
         bullet_char = "•"
-        default_font = get_default_font()
+        parent_font = get_html_node_font(self.node)
 
-        width = default_font.measure(bullet_char)
-        ascent = default_font.metrics("ascent")  
-        descent = default_font.metrics("descent")  
+        width = parent_font.measure(bullet_char)
+        ascent = parent_font.metrics("ascent")  
+        descent = parent_font.metrics("descent")  
         line_height = ascent + descent  
         square_size = width  
         
-        top_offset = (line_height - square_size) // 2
+        top_offset = (line_height - square_size) // 1.1
         x1, y1 = self.x, self.y + top_offset
         x2, y2 = x1 + square_size, y1 + square_size
 
-        return DrawRect(x1, y1, x2, y2, "white")
+        return DrawRect(x1, y1, x2, y2, "black")
     
     def init_coordinates(self):
         self.x = self.parent.x
@@ -144,10 +148,6 @@ class BlockLayout:
     def init_text_properties(self):
         self.init_cursor_x()
         self.cursor_y = 0
-        self.weight = DEFAULT_WEIGHT
-        self.style = DEFAULT_STYLE
-        self.size = DEFAULT_SIZE
-        self.font_family = DEFAULT_FONT_FAMILY
         self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
@@ -212,7 +212,7 @@ class BlockLayout:
             if self.should_align_horizontal():
                 self.cursor_x = self.get_centered_cursor_x(tree.text)
             for word in self.split_text(tree.text):
-                self.word(word)
+                self.word(tree, word)
         else:
             self.open_tag(tree)
             for child in tree.children:
@@ -221,11 +221,11 @@ class BlockLayout:
 
     def flush(self):
         if not self.line: return
-        metrics = [font.metrics() for x, word, font, y_align in self.line]
+        metrics = [font.metrics() for x, word, font, y_align, color in self.line]
         max_ascent = max([metric["ascent"] for metric in metrics])
         baseline = self.cursor_y + 1.25 * max_ascent
         
-        for rel_x, word, font, y_align in self.line:
+        for rel_x, word, font, y_align, color in self.line:
             x = self.x + rel_x
             y = self.y
             
@@ -234,19 +234,20 @@ class BlockLayout:
                 y += top_alignment
             else:
                 y += baseline - font.metrics("ascent")
-            self.display_list.append((x, y, word, font))
+            self.display_list.append((x, y, word, font, color))
             
         max_descent = max([metric["descent"] for metric in metrics])
         self.cursor_y = baseline + 1.25 * max_descent
         self.cursor_x = 0
         self.line = []
             
-    def word(self, word):
+    def word(self, node, word):
         if word == "\n":
             self.flush()
             return
         
-        font = get_font(self.size, self.weight, self.style, self.font_family)
+        font = get_html_node_font(node)
+        color = node.style["color"]
         if self.only_uppercase:
             word = word.upper()
         w = font.measure(word)
@@ -254,13 +255,13 @@ class BlockLayout:
         if self.passed_horizontal_border(word, font):
             if self.should_split_on_hypen(word, font):
                 before_split, after_split = self.split_on_hypen(word, font)
-                self.line.append((self.cursor_x, before_split, font, self.should_align_vertical()))
+                self.line.append((self.cursor_x, before_split, font, self.should_align_vertical(), color))
                 self.flush()
-                self.word(after_split)
+                self.word(node ,after_split)
                 return
             else: self.flush()
 
-        self.line.append((self.cursor_x, word, font, self.should_align_vertical()))
+        self.line.append((self.cursor_x, word, font, self.should_align_vertical(), color))
         self.cursor_x += w + font.measure(" ")
 
     def handle_tag(self, element_node, tag_handlers):
@@ -274,29 +275,21 @@ class BlockLayout:
     
     def open_tag(self, element_node):
         opening_tag_handlers = {
-            "i": lambda: setattr(self, 'style', 'italic'),
-            "b": lambda: setattr(self, 'weight', 'bold'),
-            "small": lambda: setattr(self, 'size', self.size - 2),
-            "big": lambda: setattr(self, 'size', self.size + 4),
             "br": self.flush,
             "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
-            "sup": lambda: (setattr(self, 'current_tag', "sup"), setattr(self, 'size', 6)),
-            "abbr": lambda: (setattr(self, 'size', self.size - 4), setattr(self, 'weight', 'bold'), setattr(self, 'only_uppercase', True)),
-            "pre": lambda: (setattr(self, 'preformat', True), setattr(self, 'font_family', "IBM Plex Mono")),
+            "sup": lambda: (setattr(self, 'current_tag', "sup")),
+            "abbr": lambda: (setattr(self, 'only_uppercase', True)),
+            "pre": lambda: (setattr(self, 'preformat', True)),
         }
         self.handle_tag(element_node, opening_tag_handlers)
 
     def close_tag(self, element_node):
         closing_tag_handlers = {
-            "i": lambda: setattr(self, 'style', 'roman'),
-            "b": lambda: setattr(self, 'weight', 'normal'),
-            "small": lambda: setattr(self, 'size', self.size + 2),
-            "big": lambda: setattr(self, 'size', self.size - 4),
             "h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
-            "sup": lambda: (setattr(self, 'current_tag', ""), setattr(self, 'size', 12)),
+            "sup": lambda: (setattr(self, 'current_tag', "")),
             "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
-            "abbr": lambda: (setattr(self, 'size', self.size + 4), setattr(self, 'weight', 'normal'), setattr(self, 'only_uppercase', False)),
-            "pre": lambda: (self.flush(), setattr(self, 'preformat', False), setattr(self, 'font_family', DEFAULT_FONT_FAMILY)),
+            "abbr": lambda: (setattr(self, 'only_uppercase', False)),
+            "pre": lambda: (self.flush(), setattr(self, 'preformat', False)),
         }
         self.handle_tag(element_node, closing_tag_handlers)
 
@@ -304,7 +297,7 @@ class BlockLayout:
         return self.current_tag == 'h1' and "title" in self.current_tag_class
 
     def get_centered_cursor_x(self, text):
-        font = get_font(self.size, self.weight, self.style, self.font_family)
+        font = get_html_node_font(self.node)
         w = font.measure(text)
         white_space = self.width - w
         left_margin = white_space/2
@@ -368,10 +361,4 @@ class BlockLayout:
     
     def get_child_vertical_distance(self):
         return self.children[0].y - self.y
-    
-    def add_toc_text(self):
-        if len(self.node.children) > 0:
-            first = self.node.children[0]
-            if not isinstance(first, Text) or (isinstance(first, Text) and first.text != '\n  Table Of Content\n'):
-                self.node.children.insert(0,Text('\n  Table Of Content\n', self.node))
         
