@@ -1,4 +1,6 @@
 from element import Element
+import re
+
 
 INHERITED_PROPERTIES = {
     "font-size": "16px",

@@ -189,7 +189,8 @@ class Browser:
             style_url = url.resolve(link)
             try:
                 body = style_url.request()
-                rules.extend(CSSParser(body).parse())
+                new_rules = CSSParser(body).parse()
+                rules.extend(new_rules)
             except:
                 continue
         
