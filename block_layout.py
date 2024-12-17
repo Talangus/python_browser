@@ -19,9 +19,6 @@ def get_font(size, weight, style, family):
             FONTS[key] = (font, label)
         return FONTS[key][0]
 
-def get_default_font():
-    return get_font(DEFAULT_SIZE,DEFAULT_WEIGHT,DEFAULT_STYLE, DEFAULT_FONT_FAMILY)
-
 def get_html_node_font(node):
     weight = node.style["font-weight"]
     style = node.style["font-style"]

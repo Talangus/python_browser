@@ -7,3 +7,4 @@ big { font-size: 110%; }
 sup {font-size: 50%;}
 abbr {font-size: 70%; font-weight: bold;}
 pre {font-family: "IBM Plex Mono";}
+code {font-family: Courier}
