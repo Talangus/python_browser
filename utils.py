@@ -85,3 +85,9 @@ def print_tree(node, indent=0):
 def cascade_priority(rule):
     selector, body = rule
     return selector.priority
+
+def px_str_to_int(px_str):
+    return int(float(px_str[:-2]) * .75)
+
+def has_px_ending(property):
+    return property[-2:] == 'px'

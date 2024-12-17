@@ -7,7 +7,9 @@ INHERITED_PROPERTIES = {
     "font-style": "normal",
     "font-weight": "normal",
     "color": "black",
-    "font-family":"Arial"
+    "font-family":"Arial",
+    "width" : "auto",
+    "height": "auto"
 }
 
 class CSSParser:
