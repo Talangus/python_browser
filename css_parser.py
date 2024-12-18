@@ -16,7 +16,6 @@ class CSSParser:
     def __init__(self, s):
         self.s = s
         self.i = 0
-
     
     def whitespace(self):
         while self.i < len(self.s) and self.s[self.i].isspace():
@@ -73,7 +72,8 @@ class CSSParser:
         return None
     
     def selector(self):
-        out = TagSelector(self.word().casefold())
+        word = self.word().casefold()
+        out = get_base_selector(word)
         self.whitespace()
         while self.i < len(self.s) and self.s[self.i] != "{":
             tag = self.word()
@@ -111,6 +111,14 @@ class TagSelector:
     def matches(self, node):
         return isinstance(node, Element) and self.tag == node.tag
 
+class ClassSelector:
+    def __init__(self, css_class):
+        self.css_class = css_class
+        self.priority = 1.5
+
+    def matches(self, node):
+        return isinstance(node, Element) and node.has_class(self.css_class)
+
 class DescendantSelector:
     def __init__(self, ancestor, descendant):
         self.ancestor = ancestor
@@ -123,6 +131,12 @@ class DescendantSelector:
             if self.ancestor.matches(node.parent): return True
             node = node.parent
         return False
+
+def get_base_selector(word):
+    if word[0] == '.':
+        return ClassSelector(word[1:])
+    
+    return TagSelector(word)
 
 def style(node, rules):
     node.style = {}
