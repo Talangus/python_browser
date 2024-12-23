@@ -1,4 +1,5 @@
 from element import Element
+from utils import *
 import re
 
 
@@ -10,6 +11,14 @@ INHERITED_PROPERTIES = {
     "font-family":"Arial",
     "width" : "auto",
     "height": "auto"
+}
+
+LIMITED_PROPERTIES = {
+    "display" : ["block", "inline"]
+}
+
+DEFAULT_PROPERTIES = {
+    'display': 'inline'
 }
 
 class CSSParser:
@@ -139,23 +148,24 @@ def get_base_selector(word):
     return TagSelector(word)
 
 def style(node, rules):
-    node.style = {}
+    node.style = DEFAULT_PROPERTIES.copy()
 
     for property, default_value in INHERITED_PROPERTIES.items():
         if node.parent:
-            node.style[property] = node.parent.style[property]
+            value = node.parent.style[property]
         else:
-            node.style[property] = default_value
+            value = default_value
+        add_style(node, property, value)
 
     for selector, body in rules:
         if not selector.matches(node): continue
         for property, value in body.items():
-            node.style[property] = value
+            add_style(node, property, value)
 
     if isinstance(node, Element) and "style" in node.attributes:
         pairs = CSSParser(node.attributes["style"]).body()
         for property, value in pairs.items():
-            node.style[property] = value
+            add_style(node, property, value)
 
     if node.style["font-size"].endswith("%"):
         if node.parent:
@@ -168,3 +178,9 @@ def style(node, rules):
     
     for child in node.children:
         style(child, rules)
+
+def add_style(node, property, value):
+    if property in LIMITED_PROPERTIES and value not in LIMITED_PROPERTIES[property]:
+        return
+
+    node.style[property] = value    

@@ -91,3 +91,6 @@ def px_str_to_int(px_str):
 
 def has_px_ending(property):
     return property[-2:] == 'px'
+
+def is_leaf(node):
+    return len(node.children) == 0

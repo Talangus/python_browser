@@ -203,7 +203,7 @@ class BlockLayout:
     def layout_mode(self):
         if isinstance(self.node, Text):
             return "inline"
-        elif any([isinstance(child, Element) and child.tag in BLOCK_ELEMENTS
+        elif any([isinstance(child, Element) and child.style['display'] == 'block'
                   for child in self.node.children]):
             return "block"
         elif self.node.children:
