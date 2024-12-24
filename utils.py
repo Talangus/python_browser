@@ -2,6 +2,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
+from element import Element
 
 class CustomError(Exception):
     pass
@@ -94,3 +95,6 @@ def has_px_ending(property):
 
 def is_leaf(node):
     return len(node.children) == 0
+
+def html_node_is(node, tag):
+    return isinstance(node, Element) and node.tag == tag
