@@ -50,7 +50,7 @@ class Browser:
         self.nodes = html_decode(nodes)
         rules = self.DEFAULT_STYLE_SHEET.copy()
         rules.extend(self.get_css_rules(url))
-        style(self.nodes, sorted(rules, key=cascade_priority))
+        style(self.nodes, sorted(rules, key=cascade_priority), {})
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         # print_tree(self.document)

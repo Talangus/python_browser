@@ -141,13 +141,69 @@ class DescendantSelector:
             node = node.parent
         return False
 
+class PendingSelector:
+    def __init__(self, ancestor_id, selector):
+        self.ancestor_id = ancestor_id
+        self.selector = selector
+        self.match = False
+
+    def matches(self, node):
+        return self.selector.matches(node)
+        
+class HasSelector:
+    def __init__(self, ancestor, pending_selector):
+        self.ancestor = ancestor
+        self.pending_selector = pending_selector
+        self.priority = ancestor.priority + pending_selector.priority
+
+    def ancestor_matches(self, node):
+        return self.ancestor.match(node)
+
 def get_base_selector(word):
     if word[0] == '.':
         return ClassSelector(word[1:])
     
     return TagSelector(word)
 
-def style(node, rules):
+# def style(node, rules):
+#     node.style = DEFAULT_PROPERTIES.copy()
+
+#     for property, default_value in INHERITED_PROPERTIES.items():
+#         if node.parent:
+#             value = node.parent.style[property]
+#         else:
+#             value = default_value
+#         add_style(node, property, value)
+
+#     for selector, body in rules:
+#         if not selector.matches(node): continue
+#         for property, value in body.items():
+#             add_style(node, property, value)
+
+#     if isinstance(node, Element) and "style" in node.attributes:
+#         pairs = CSSParser(node.attributes["style"]).body()
+#         for property, value in pairs.items():
+#             add_style(node, property, value)
+
+#     if node.style["font-size"].endswith("%"):
+#         if node.parent:
+#             parent_font_size = node.parent.style["font-size"]
+#         else:
+#             parent_font_size = INHERITED_PROPERTIES["font-size"]
+#         node_pct = float(node.style["font-size"][:-1]) / 100
+#         parent_px = float(parent_font_size[:-2])
+#         node.style["font-size"] = str(node_pct * parent_px) + "px"
+    
+#     for child in node.children:
+#         style(child, rules)
+
+def add_style(node, property, value):
+    if property in LIMITED_PROPERTIES and value not in LIMITED_PROPERTIES[property]:
+        return
+
+    node.style[property] = value    
+
+def style(node, rules, pending_rules):
     node.style = DEFAULT_PROPERTIES.copy()
 
     for property, default_value in INHERITED_PROPERTIES.items():
@@ -176,11 +232,20 @@ def style(node, rules):
         parent_px = float(parent_font_size[:-2])
         node.style["font-size"] = str(node_pct * parent_px) + "px"
     
+    remaining_rules =  pending_rules.copy()
+    for ancestor_id in pending_rules:
+        pending_selector = pending_rules[ancestor_id].pending_selector
+        selector = pending_selector.selector
+        if selector.matches(node):
+            pending_selector.match = True
+            remaining_rules.pop(ancestor_id)
+
     for child in node.children:
-        style(child, rules)
+        pending_rules = pending_rules | style(child, rules, remaining_rules)
 
-def add_style(node, property, value):
-    if property in LIMITED_PROPERTIES and value not in LIMITED_PROPERTIES[property]:
-        return
+    node_rule = pending_rules[node.id()]
+    if node_rule.pending_selector.match:
+        for property, value in node_rule.body.items():
+            add_style(node, property, value)
 
-    node.style[property] = value    
+    return pending_rules    

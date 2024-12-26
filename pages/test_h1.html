@@ -1,26 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three Colored Blocks</title>
+    <title>Nested Structure</title>
     <style>
-        .third-block {
-            background-color: lightgreen;
-            width: 100%;
-            height: 200px;
+        div {
+            border: 1px solid #000;
+            
+        }
+
+        div div {
+            color: red;
+            
+        }
+
+        div div div {
+            color: lightgreen;
+            
         }
     </style>
 </head>
+
 <body>
-    <div style="background-color: lightblue; width: 100%; height: 200px;">
-        <p>This is the first block with a light blue background.</p>
-    </div>
-    <div style="background-color: lightcoral; width: 100%; height: 200px;">
-        <p>This is the second block with a light coral background.</p>
-    </div>
-    <div class="third-block">
-        <p>This is the third block with a light green background.</p>
+    <div>
+        <h1>
+
+            
+                <div>
+                    outer
+                    <div>
+                        Inner-most Block Content
+                    </div>
+                </div>
+            
+
+
+
+
+            </h1>
     </div>
 </body>
+
 </html>
