@@ -33,7 +33,8 @@ class CSSParser:
     def word(self):
         start = self.i
         while self.i < len(self.s):
-            if self.s[self.i].isalnum() or self.s[self.i] in "#-.%":
+            char = self.s[self.i]
+            if char.isalnum() or char in "#-.%":
                 self.i += 1
             else:
                 break
@@ -85,11 +86,25 @@ class CSSParser:
         out = get_base_selector(word)
         self.whitespace()
         while self.i < len(self.s) and self.s[self.i] != "{":
-            tag = self.word()
-            descendant = TagSelector(tag.casefold())
+            if self.is_has_selector():
+                selector_str = self.get_has_selector_str().strip()
+                self.ignore_until(["{"])
+                return HasSelector(out, CSSParser(selector_str).selector())
+            selector_str = self.word()
+            descendant = get_base_selector(selector_str.casefold())
             out = DescendantSelector(out, descendant)
             self.whitespace()
         return out
+
+    def is_has_selector(self):
+        has_selector_regex = r"^:has\([^{]+\)"
+        return re.search(has_selector_regex, self.s[self.i:])
+    
+    def get_has_selector_str(self):
+        has_selector_regex = r"^:has\(([^{]+)\)"
+        match = re.search(has_selector_regex, self.s[self.i:])
+        return match.group(1)
+
 
     def parse(self):
         rules = []
@@ -154,7 +169,7 @@ class HasSelector:
     def __init__(self, ancestor, pending_selector):
         self.ancestor = ancestor
         self.pending_selector = pending_selector
-        self.priority = ancestor.priority + pending_selector.priority
+        self.priority = ancestor.priority + pending_selector.priority + 1
 
     def ancestor_matches(self, node):
         return self.ancestor.match(node)

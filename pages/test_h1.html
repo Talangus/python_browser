@@ -1,46 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nested Structure</title>
+    <title>Has Selector Example</title>
     <style>
-        div {
-            border: 1px solid #000;
-            
+        .parent {
+            width: 150px;
+            height: 150px;
+            margin: 10px;
+            background-color: lightgray;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        div div {
-            color: red;
-            
+        .parent:has( .child) {
+            background-color: #ff6347;
         }
 
-        div div div {
-            color: lightgreen;
-            
+        .child {
+            width: 80px;
+            height: 80px;
+            background-color: #3498db;
         }
     </style>
 </head>
-
 <body>
-    <div>
-        <h1>
-
-            
-                <div>
-                    outer
-                    <div>
-                        Inner-most Block Content
-                    </div>
-                </div>
-            
-
-
-
-
-            </h1>
+    <div class="parent">
+        <div class="child"></div>
     </div>
+    <div class="parent"></div>
 </body>
-
 </html>
