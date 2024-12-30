@@ -28,6 +28,15 @@ def get_html_node_font(node):
 
     return get_font(size, weight, style, font_family)
 
+def get_html_node_font(node):
+    weight = node.style["font-weight"]
+    style = node.style["font-style"]
+    if style == "normal": style = "roman"
+    size = int(float(node.style["font-size"][:-2]) * .75)
+    font_family = node.style["font-family"]
+
+    return get_font(size, weight, style, font_family)
+
 BLOCK_ELEMENTS = [
     "html", "body", "article", "section", "nav", "aside",
     "h1", "h2", "h3", "h4", "h5", "h6", "hgroup", "header",
