@@ -19,8 +19,14 @@ def get_font(size, weight, style, family):
             FONTS[key] = (font, label)
         return FONTS[key][0]
 
-def get_default_font():
-    return get_font(DEFAULT_SIZE,DEFAULT_WEIGHT,DEFAULT_STYLE, DEFAULT_FONT_FAMILY)
+def get_html_node_font(node):
+    weight = node.style["font-weight"]
+    style = node.style["font-style"]
+    if style == "normal": style = "roman"
+    size = int(float(node.style["font-size"][:-2]) * .75)
+    font_family = node.style["font-family"]
+
+    return get_font(size, weight, style, font_family)
 
 def get_html_node_font(node):
     weight = node.style["font-weight"]
@@ -123,8 +129,11 @@ class BlockLayout:
     
     def init_coordinates(self):
         self.x = self.parent.x
-        self.width = self.parent.width
+        self.width = self.parent.width if self.is_auto_property('width') else px_str_to_int(self.node.style["width"])
         self.init_y()
+    
+    def is_auto_property(self, property):
+        return not has_px_ending(self.node.style[property])
 
     def init_y(self):
         if self.previous:
@@ -174,13 +183,17 @@ class BlockLayout:
             self.flush()
 
     def calculate_hight(self,mode):
+        if not self.is_auto_property('height'):
+            self.height =  px_str_to_int(self.node.style["height"])
+            return
+        
         if mode == "block":
             self.height = sum([child.height for child in self.children])
-            
             if len(self.children) > 0:
                 self.height += self.get_child_vertical_distance()
+            return
 
-        else: self.height = self.cursor_y
+        self.height = self.cursor_y
 
     def layout(self):
         self.init_coordinates()
@@ -199,7 +212,7 @@ class BlockLayout:
     def layout_mode(self):
         if isinstance(self.node, Text):
             return "inline"
-        elif any([isinstance(child, Element) and child.tag in BLOCK_ELEMENTS
+        elif any([isinstance(child, Element) and child.style['display'] == 'block'
                   for child in self.node.children]):
             return "block"
         elif self.node.children:

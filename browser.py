@@ -50,7 +50,7 @@ class Browser:
         self.nodes = html_decode(nodes)
         rules = self.DEFAULT_STYLE_SHEET.copy()
         rules.extend(self.get_css_rules(url))
-        style(self.nodes, sorted(rules, key=cascade_priority))
+        style(self.nodes, sorted(rules, key=cascade_priority), {})
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         # print_tree(self.document)
@@ -184,6 +184,13 @@ class Browser:
 
     def get_css_rules(self, url):
         rules = []
+        rules.extend(self.get_external_css_rules(url))
+        rules.extend(self.get_inline_style_rules())
+        
+        return rules
+            
+    def get_external_css_rules(self,url):
+        rules = []
         links = self.get_css_links()
         for link in links:
             style_url = url.resolve(link)
@@ -195,8 +202,16 @@ class Browser:
                 continue
         
         return rules
-            
-        
+
+    def get_inline_style_rules(self):
+        rules = []
+        nodes = tree_to_list(self.nodes, [])
+        for node in nodes:
+            if html_node_is(node, 'style'):
+                rules.extend(CSSParser(node.children[0].text).parse())
+
+        return rules
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Simple python browser.")
     

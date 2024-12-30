@@ -1,14 +1,34 @@
-<html>
- 
-<head></head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Has Selector Example</title>
+    <style>
+        .parent {
+            width: 150px;
+            height: 150px;
+            margin: 10px;
+            background-color: lightgray;
+            align-items: center;
+            justify-content: center;
+        }
 
-<body testAttr="hei sds>">
-  
-  <div> test
-  test  </div>
+        .parent:has( .child) {
+            background-color: #ff6347;
+        }
 
-      
-      
-   
+        .child {
+            width: 80px;
+            height: 80px;
+            background-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="parent">
+        <div class="child"></div>
+    </div>
+    <div class="parent"></div>
 </body>
-</html> 
+</html>
