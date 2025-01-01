@@ -1,5 +1,5 @@
-from utils import *
-from html_parser import HTMLParser
+from util.utils import *
+from html_.html_parser import HTMLParser
 
 
 class SourceHTMLParser(HTMLParser):

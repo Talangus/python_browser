@@ -1,3 +1,6 @@
+print("Loading element.py")
+
+
 import re
 class Element:
     def __init__(self, tag, attributes, parent):
@@ -43,4 +46,6 @@ class Element:
 
         return tag_name, attributes
     
+    def is_tag(self, tag):
+        return self.tag == tag
     

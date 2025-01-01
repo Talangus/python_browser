@@ -1,5 +1,5 @@
-from utils import *
-from element import Element
+from util.utils import *
+from html_.element import Element
 
 class HTMLParser:
 

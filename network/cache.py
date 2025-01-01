@@ -3,7 +3,7 @@ import json
 import time
 from pathlib import Path
 from urllib.parse import urlparse
-from utils import *
+from util.utils import *
 
 CACHE_DIR = "cache"
 CACHE_DISABLED = True

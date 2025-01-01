@@ -2,7 +2,6 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from element import Element
 
 class CustomError(Exception):
     pass
@@ -16,6 +15,9 @@ class Text:
 
     def __repr__(self):
         return repr(self.text)
+    
+    def is_tag(self, tag):
+        return False
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -95,6 +97,3 @@ def has_px_ending(property):
 
 def is_leaf(node):
     return len(node.children) == 0
-
-def html_node_is(node, tag):
-    return isinstance(node, Element) and node.tag == tag

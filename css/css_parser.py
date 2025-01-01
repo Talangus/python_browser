@@ -1,5 +1,5 @@
-from element import Element
-from utils import *
+from html_.element import Element
+from util.utils import *
 import re
 
 

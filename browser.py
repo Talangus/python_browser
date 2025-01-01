@@ -1,25 +1,24 @@
 import tkinter
 import argparse
-from collections import deque
 from PIL import Image, ImageTk
-from url import URL
-from socket_manager import socket_manager 
-from cache import cache
-from coordinate import Coordinate
-from utils import *
-from html_decode import html_decode
-from block_layout import BlockLayout
-from document_layout import DocumentLayout
-from html_parser import HTMLParser
-from source_html_parser import SourceHTMLParser
-from css_parser import style, CSSParser
-from element import Element
+
+from network.url import URL
+from network.socket_manager import socket_manager 
+from network.cache import cache
+from layout.coordinate import Coordinate
+from layout.document_layout import DocumentLayout
+from html_.html_decode import html_decode
+from html_.html_parser import HTMLParser
+from html_.source_html_parser import SourceHTMLParser
+from html_.element import Element
+from css.css_parser import style, CSSParser
+from util.utils import *
 
 class Browser:
     SCROLL_STEP = 100
     HSTEP = 13
     VSTEP = 18
-    DEFAULT_STYLE_SHEET = CSSParser(open("browser.css").read()).parse()
+    DEFAULT_STYLE_SHEET = CSSParser(open("./css/browser.css").read()).parse()
     
     def __init__(self):
         self.width = 800
@@ -53,7 +52,7 @@ class Browser:
         style(self.nodes, sorted(rules, key=cascade_priority), {})
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
-        # print_tree(self.document)
+        print_tree(self.document)
         paint_tree(self.document, self.display_list)
         self.draw() 
         
@@ -63,7 +62,6 @@ class Browser:
         for cmd in self.display_list:
             if self.is_below_viewport(cmd): continue
             if self.is_above_viewport(cmd): continue
-            # self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
             cmd.execute(self.scroll, self.canvas)
 
     def is_below_viewport(self, cmd):
@@ -207,7 +205,7 @@ class Browser:
         rules = []
         nodes = tree_to_list(self.nodes, [])
         for node in nodes:
-            if html_node_is(node, 'style'):
+            if node.is_tag('style'):
                 rules.extend(CSSParser(node.children[0].text).parse())
 
         return rules
