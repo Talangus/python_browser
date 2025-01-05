@@ -1,9 +1,9 @@
 import base64
 import gzip
 
-from socket_manager import socket_manager
-from cache import cache
-from utils import *
+from .socket_manager import socket_manager
+from .cache import cache
+from util.utils import *
 
 
 

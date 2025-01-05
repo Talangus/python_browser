@@ -1,7 +1,7 @@
-from utils import *
-from element import Element
-from draw_text import DrawText
-from draw_rect import DrawRect
+from util.utils import *
+from html_.element import Element
+from doc_layout.draw_text import DrawText
+from doc_layout.draw_rect import DrawRect
 import tkinter.font
 
 FONTS = {}

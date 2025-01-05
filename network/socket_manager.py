@@ -1,7 +1,7 @@
 import socket
 import ssl
 
-from utils import *
+from util.utils import *
 
 class SocketManager:
     def __new__(cls):

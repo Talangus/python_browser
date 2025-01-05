@@ -43,4 +43,6 @@ class Element:
 
         return tag_name, attributes
     
+    def is_tag(self, tag):
+        return self.tag == tag
     

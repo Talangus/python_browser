@@ -1,4 +1,4 @@
-from block_layout import BlockLayout
+from doc_layout.block_layout import BlockLayout
 
 class DocumentLayout:
     HSTEP = 13
