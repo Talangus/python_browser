@@ -1,6 +1,3 @@
-print("Loading element.py")
-
-
 import re
 class Element:
     def __init__(self, tag, attributes, parent):

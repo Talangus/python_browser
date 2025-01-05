@@ -1,7 +1,7 @@
 from util.utils import *
 from html_.element import Element
-from layout.draw_text import DrawText
-from layout.draw_rect import DrawRect
+from doc_layout.draw_text import DrawText
+from doc_layout.draw_rect import DrawRect
 import tkinter.font
 
 FONTS = {}
