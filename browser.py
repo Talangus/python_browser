@@ -20,7 +20,7 @@ class Browser:
         self.width = 800
         self.height = 600
         self.window = tkinter.Tk()
-        self.window_layout = WindowLayout(self, 0)
+        self.window_layout = WindowLayout(self)
         self.canvas = tkinter.Canvas(
             self.window, 
             width=self.width,

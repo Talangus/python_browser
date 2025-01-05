@@ -9,7 +9,7 @@ class WindowLayout:
         self.browser = browser
         self.height = browser.height
         self.width = browser.width
-        self.scroll = scroll 
+        self.scroll = 0 
 
     def update_size(self):
         self.height = self.browser.height
