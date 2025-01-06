@@ -5,7 +5,7 @@ class WindowLayout:
     HSTEP = 13
     VSTEP = 18
 
-    def __init__(self, browser, scroll):
+    def __init__(self, browser):
         self.browser = browser
         self.height = browser.height
         self.width = browser.width
