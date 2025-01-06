@@ -2,49 +2,9 @@ from util.utils import *
 from html_.element import Element
 from doc_layout.draw_text import DrawText
 from doc_layout.draw_rect import DrawRect
-import tkinter.font
+from doc_layout.text_layout import TextLayout
+from doc_layout.line_layout import LineLayout
 
-FONTS = {}
-DEFAULT_FONT_FAMILY = "Arial"
-DEFAULT_WEIGHT = "normal"
-DEFAULT_STYLE= "roman"
-DEFAULT_SIZE = 12
-
-def get_font(size, weight, style, family):
-        key = (size, weight, style, family)
-        if key not in FONTS:
-            font = tkinter.font.Font(size=size, weight=weight,
-                slant=style, family=family)
-            label = tkinter.Label(font=font)
-            FONTS[key] = (font, label)
-        return FONTS[key][0]
-
-def get_html_node_font(node):
-    weight = node.style["font-weight"]
-    style = node.style["font-style"]
-    if style == "normal": style = "roman"
-    size = int(float(node.style["font-size"][:-2]) * .75)
-    font_family = node.style["font-family"]
-
-    return get_font(size, weight, style, font_family)
-
-def get_html_node_font(node):
-    weight = node.style["font-weight"]
-    style = node.style["font-style"]
-    if style == "normal": style = "roman"
-    size = int(float(node.style["font-size"][:-2]) * .75)
-    font_family = node.style["font-family"]
-
-    return get_font(size, weight, style, font_family)
-
-BLOCK_ELEMENTS = [
-    "html", "body", "article", "section", "nav", "aside",
-    "h1", "h2", "h3", "h4", "h5", "h6", "hgroup", "header",
-    "footer", "address", "p", "hr", "pre", "blockquote",
-    "ol", "ul", "menu", "li", "dl", "dt", "dd", "figure",
-    "figcaption", "main", "div", "table", "form", "fieldset",
-    "legend", "details", "summary"
-]
 
 class BlockLayout:
     HSTEP = 13
@@ -55,7 +15,7 @@ class BlockLayout:
         self.parent = parent
         self.previous = previous
         self.children = []
-        self.display_list = []
+        # self.display_list = []
         self.x = None
         self.y = None
         self.width = None
@@ -145,7 +105,6 @@ class BlockLayout:
             y += 0.5 *self.VSTEP
         
         self.y = y
-        
 
     def init_children(self):
         previous = None
@@ -156,7 +115,7 @@ class BlockLayout:
     
     def init_text_properties(self):
         self.init_cursor_x()
-        self.cursor_y = 0
+        # self.cursor_y = 0
         self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
@@ -168,32 +127,24 @@ class BlockLayout:
         else:
             self.cursor_x = 0
 
-    def init_cursor_y(self):
-        if self.is_toc_first_element():
-            self.cursor_y = self.VSTEP
-        else:
-            self.cursor_y = 0
-          
-
     def layout_text(self):
         self.init_text_properties()
         if not self.in_head:
-            self.line = []
+            # self.line = []
+            self.new_line()
             self.recurse(self.node)
-            self.flush()
+            # self.flush()
 
     def calculate_hight(self,mode):
         if not self.is_auto_property('height'):
             self.height =  px_str_to_int(self.node.style["height"])
             return
         
-        if mode == "block":
-            self.height = sum([child.height for child in self.children])
-            if len(self.children) > 0:
-                self.height += self.get_child_vertical_distance()
-            return
-
-        self.height = self.cursor_y
+        # if mode == "block":
+        self.height = sum([child.height for child in self.children])
+        if len(self.children) > 0:
+            self.height += self.get_child_vertical_distance()
+        # self.height = self.cursor_y
 
     def layout(self):
         self.init_coordinates()
@@ -277,6 +228,21 @@ class BlockLayout:
         self.line.append((self.cursor_x, word, font, self.should_align_vertical(), color))
         self.cursor_x += w + font.measure(" ")
 
+    def word(self, node, word):
+        font = get_html_node_font(node)
+        if self.passed_horizontal_border(word, font):
+            self.new_line()
+        line = self.children[-1]
+        previous_word = line.children[-1] if line.children else None
+        text = TextLayout(node, word, line, previous_word)
+        line.children.append(text)
+
+    def new_line(self):
+        self.cursor_x = 0
+        last_line = self.children[-1] if self.children else None
+        new_line = LineLayout(self.node, self, last_line)
+        self.children.append(new_line)
+    
     def handle_tag(self, element_node, tag_handlers):
         if element_node.tag in tag_handlers:
                 tag_handlers[element_node.tag]()

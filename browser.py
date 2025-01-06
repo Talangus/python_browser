@@ -48,6 +48,7 @@ class Browser:
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         paint_tree(self.document, self.display_list)
+        print_tree(self.document)
         self.draw() 
         
     def draw(self):
