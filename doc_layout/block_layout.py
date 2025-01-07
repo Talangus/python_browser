@@ -1,4 +1,5 @@
 from util.utils import *
+from doc_layout.utils import *
 from html_.element import Element
 from doc_layout.draw_text import DrawText
 from doc_layout.draw_rect import DrawRect
@@ -36,16 +37,16 @@ class BlockLayout:
     def paint(self):
         cmds = []
         cmds.extend(self.get_rectangels_cmds())
-        cmds.extend(self.get_text_cmds())
+        # cmds.extend(self.get_text_cmds())
             
         return cmds 
     
-    def get_text_cmds(self):
-        cmds = []
-        if self.layout_mode() == "inline":
-            for x, y, word, font, color in self.display_list:
-                    cmds.append(DrawText(x, y, word, font, color))
-        return cmds
+    # def get_text_cmds(self):
+    #     cmds = []
+    #     if self.layout_mode() == "inline":
+    #         for x, y, word, font, color in self.display_list:
+    #                 cmds.append(DrawText(x, y, word, font, color))
+    #     return cmds
 
     def get_rectangels_cmds(self):
         if not isinstance(self.node, Element):
@@ -205,31 +206,34 @@ class BlockLayout:
         self.cursor_x = 0
         self.line = []
             
-    def word(self, node, word):
-        if word == "\n":
-            self.flush()
-            return
+    # def word(self, node, word):
+    #     if word == "\n":
+    #         self.flush()
+    #         return
         
+    #     font = get_html_node_font(node)
+    #     color = node.style["color"]
+    #     if self.only_uppercase:
+    #         word = word.upper()
+    #     w = font.measure(word)
+
+    #     if self.passed_horizontal_border(word, font):
+    #         if self.should_split_on_hypen(word, font):
+    #             before_split, after_split = self.split_on_hypen(word, font)
+    #             self.line.append((self.cursor_x, before_split, font, self.should_align_vertical(), color))
+    #             self.flush()
+    #             self.word(node ,after_split)
+    #             return
+    #         else: self.flush()
+
+    #     self.line.append((self.cursor_x, word, font, self.should_align_vertical(), color))
+    #     self.cursor_x += w + font.measure(" ")
+
+    def word(self, node, word):
         font = get_html_node_font(node)
-        color = node.style["color"]
         if self.only_uppercase:
             word = word.upper()
-        w = font.measure(word)
 
-        if self.passed_horizontal_border(word, font):
-            if self.should_split_on_hypen(word, font):
-                before_split, after_split = self.split_on_hypen(word, font)
-                self.line.append((self.cursor_x, before_split, font, self.should_align_vertical(), color))
-                self.flush()
-                self.word(node ,after_split)
-                return
-            else: self.flush()
-
-        self.line.append((self.cursor_x, word, font, self.should_align_vertical(), color))
-        self.cursor_x += w + font.measure(" ")
-
-    def word(self, node, word):
-        font = get_html_node_font(node)
         if self.passed_horizontal_border(word, font):
             self.new_line()
         line = self.children[-1]
@@ -254,8 +258,8 @@ class BlockLayout:
     
     def open_tag(self, element_node):
         opening_tag_handlers = {
-            "br": self.flush,
-            "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
+            "br": self.new_line,
+            "h1": lambda: (self.new_line(), setattr(self, 'current_tag', "h1")),
             "sup": lambda: (setattr(self, 'current_tag', "sup")),
             "abbr": lambda: (setattr(self, 'only_uppercase', True)),
             "pre": lambda: (setattr(self, 'preformat', True)),
@@ -264,11 +268,11 @@ class BlockLayout:
 
     def close_tag(self, element_node):
         closing_tag_handlers = {
-            "h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
+            "h1": lambda: (self.new_line(), setattr(self, 'current_tag', "")),
             "sup": lambda: (setattr(self, 'current_tag', "")),
-            "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
+            "p": lambda: (self.new_line(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
             "abbr": lambda: (setattr(self, 'only_uppercase', False)),
-            "pre": lambda: (self.flush(), setattr(self, 'preformat', False)),
+            "pre": lambda: (self.new_line(), setattr(self, 'preformat', False)),
         }
         self.handle_tag(element_node, closing_tag_handlers)
 
