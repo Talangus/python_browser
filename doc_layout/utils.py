@@ -23,3 +23,9 @@ def get_html_node_font(node):
     font_family = node.style["font-family"]
 
     return get_font(size, weight, style, font_family)
+
+def last_line_is_empty(last_line):
+        if last_line is None:
+            return False
+        
+        return len(last_line.children) == 0

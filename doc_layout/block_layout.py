@@ -242,11 +242,14 @@ class BlockLayout:
         line.children.append(text)
 
     def new_line(self):
-        self.cursor_x = 0
         last_line = self.children[-1] if self.children else None
+        if last_line_is_empty(last_line):
+            return
+
+        self.cursor_x = 0
         new_line = LineLayout(self.node, self, last_line)
         self.children.append(new_line)
-    
+
     def handle_tag(self, element_node, tag_handlers):
         if element_node.tag in tag_handlers:
                 tag_handlers[element_node.tag]()
