@@ -8,18 +8,27 @@ class TextLayout: ##make sure it has the extra features implemented in previuos 
         self.children = []
         self.parent = parent
         self.previous = previous
+        
 
     def layout(self):
         self.font = get_html_node_font(self.node)
         self.width = self.font.measure(self.word)
+
         if self.previous:
             space = self.previous.font.measure(" ")
-            self.x = self.previous.x + space + self.previous.width
+            self.x1 = self.previous.x2 + space 
         else:
-            self.x = self.parent.x
-
+            self.x1 = self.parent.x
+        
+        self.x2 = self.x1 + self.width
         self.height = self.font.metrics("linespace")
+
+        if self.passed_line_width():
+            self.parent.split_line(self)
+
+    def passed_line_width(self):
+        return self.x2 > self.parent.width
 
     def paint(self):
         color = self.node.style["color"]
-        return [DrawText(self.x, self.y, self.word, self.font, color)]
+        return [DrawText(self.x1, self.y, self.word, self.font, color)]

@@ -37,17 +37,9 @@ class BlockLayout:
     def paint(self):
         cmds = []
         cmds.extend(self.get_rectangels_cmds())
-        # cmds.extend(self.get_text_cmds())
             
         return cmds 
     
-    # def get_text_cmds(self):
-    #     cmds = []
-    #     if self.layout_mode() == "inline":
-    #         for x, y, word, font, color in self.display_list:
-    #                 cmds.append(DrawText(x, y, word, font, color))
-    #     return cmds
-
     def get_rectangels_cmds(self):
         if not isinstance(self.node, Element):
             return []
@@ -131,10 +123,8 @@ class BlockLayout:
     def layout_text(self):
         self.init_text_properties()
         if not self.in_head:
-            # self.line = []
             self.new_line()
             self.recurse(self.node)
-            # self.flush()
 
     def calculate_hight(self,mode):
         if not self.is_auto_property('height'):
@@ -156,11 +146,17 @@ class BlockLayout:
         else:
             self.layout_text()
             
-        for child in self.children:
-            child.layout()
+        self.layout_children()
 
         self.calculate_hight(mode)
-        
+
+    def layout_children(self):
+        i = 0
+        while (i < len(self.children)):
+            current_child = self.children[i]
+            current_child.layout()
+            i+= 1
+
     def layout_mode(self):
         if isinstance(self.node, Text):
             return "inline"
@@ -184,58 +180,13 @@ class BlockLayout:
                 self.recurse(child)
             self.close_tag(tree)
 
-    def flush(self):
-        if not self.line: return
-        metrics = [font.metrics() for x, word, font, y_align, color in self.line]
-        max_ascent = max([metric["ascent"] for metric in metrics])
-        baseline = self.cursor_y + 1.25 * max_ascent
-        
-        for rel_x, word, font, y_align, color in self.line:
-            x = self.x + rel_x
-            y = self.y
-            
-            if y_align:
-                top_alignment = baseline - max_ascent
-                y += top_alignment
-            else:
-                y += baseline - font.metrics("ascent")
-            self.display_list.append((x, y, word, font, color))
-            
-        max_descent = max([metric["descent"] for metric in metrics])
-        self.cursor_y = baseline + 1.25 * max_descent
-        self.cursor_x = 0
-        self.line = []
-            
-    # def word(self, node, word):
-    #     if word == "\n":
-    #         self.flush()
-    #         return
-        
-    #     font = get_html_node_font(node)
-    #     color = node.style["color"]
-    #     if self.only_uppercase:
-    #         word = word.upper()
-    #     w = font.measure(word)
-
-    #     if self.passed_horizontal_border(word, font):
-    #         if self.should_split_on_hypen(word, font):
-    #             before_split, after_split = self.split_on_hypen(word, font)
-    #             self.line.append((self.cursor_x, before_split, font, self.should_align_vertical(), color))
-    #             self.flush()
-    #             self.word(node ,after_split)
-    #             return
-    #         else: self.flush()
-
-    #     self.line.append((self.cursor_x, word, font, self.should_align_vertical(), color))
-    #     self.cursor_x += w + font.measure(" ")
-
     def word(self, node, word):
         font = get_html_node_font(node)
         if self.only_uppercase:
             word = word.upper()
 
-        if self.passed_horizontal_border(word, font):
-            self.new_line()
+        # if self.passed_horizontal_border(word, font):
+        #     self.new_line()
         line = self.children[-1]
         previous_word = line.children[-1] if line.children else None
         text = TextLayout(node, word, line, previous_word)
@@ -246,8 +197,8 @@ class BlockLayout:
         if last_line_is_empty(last_line):
             return
 
-        self.cursor_x = 0
-        new_line = LineLayout(self.node, self, last_line)
+        # self.cursor_x = 0
+        new_line = LineLayout(self.node, self, last_line, self.cursor_x)
         self.children.append(new_line)
 
     def handle_tag(self, element_node, tag_handlers):
@@ -271,7 +222,7 @@ class BlockLayout:
 
     def close_tag(self, element_node):
         closing_tag_handlers = {
-            "h1": lambda: (self.new_line(), setattr(self, 'current_tag', "")),
+            "h1": lambda: (setattr(self, 'current_tag', "")),
             "sup": lambda: (setattr(self, 'current_tag', "")),
             "p": lambda: (self.new_line(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
             "abbr": lambda: (setattr(self, 'only_uppercase', False)),
@@ -292,12 +243,6 @@ class BlockLayout:
     def should_align_vertical(self):
         return self.current_tag == 'sup'
     
-    def passed_horizontal_border(self, word ,font):
-        if self.preformat:
-            return False
-        w = font.measure(word)
-        return self.cursor_x + w > self.width 
-
     def should_split_on_hypen(self, word, font):
         indexes = BlockLayout.get_soft_hyphen_positions(word)
         if len(indexes) == 0:

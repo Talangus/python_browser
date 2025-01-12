@@ -29,3 +29,18 @@ def last_line_is_empty(last_line):
             return False
         
         return len(last_line.children) == 0
+
+def get_object_index(arr, obj):
+    for index, curr_obj in enumerate(arr):
+         if curr_obj is obj:
+              return index
+    return -1     
+
+def split_on_object(arr, split_obj):
+    split_index = get_object_index(arr, split_obj)
+         
+    if split_index > -1:
+        return arr[:split_index], arr[split_index:]
+    else:
+        return arr, []
+         

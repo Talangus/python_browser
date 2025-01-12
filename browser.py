@@ -65,6 +65,8 @@ class Browser:
         self.window.destroy()
 
     def on_resize(self, event):
+        if event.width == 1 or event.height == 1:
+            return
         self.width = event.width
         self.height = event.height
         self.window_layout.update_size()
