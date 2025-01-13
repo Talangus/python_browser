@@ -10,17 +10,18 @@ from doc_layout.line_layout import LineLayout
 class BlockLayout:
     HSTEP = 13
     VSTEP = 18
+    DEFAULT_PADDING = 100 * VSTEP
 
     def __init__(self, node, parent, previous):
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
-        # self.display_list = []
         self.x = None
         self.y = None
         self.width = None
-        self.height = None
+        self.height = 0
+        self.vertical_padding = 0
         self.init_in_head()
        
     def init_in_head(self):
@@ -108,17 +109,16 @@ class BlockLayout:
     
     def init_text_properties(self):
         self.init_cursor_x()
-        # self.cursor_y = 0
         self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
         self.preformat = False
 
     def init_cursor_x(self):
+        self.cursor_x = self.VSTEP
         if self.node_is("li"):
-            self.cursor_x = self.VSTEP
-        else:
-            self.cursor_x = 0
+            self.cursor_x += 0.5 * self.VSTEP
+        
 
     def layout_text(self):
         self.init_text_properties()
@@ -128,14 +128,12 @@ class BlockLayout:
 
     def calculate_hight(self,mode):
         if not self.is_auto_property('height'):
-            self.height =  px_str_to_int(self.node.style["height"])
+            self.height +=  px_str_to_int(self.node.style["height"])
             return
         
-        # if mode == "block":
-        self.height = sum([child.height for child in self.children])
+        self.height += sum([child.height for child in self.children])
         if len(self.children) > 0:
             self.height += self.get_child_vertical_distance()
-        # self.height = self.cursor_y
 
     def layout(self):
         self.init_coordinates()
@@ -156,6 +154,10 @@ class BlockLayout:
             current_child = self.children[i]
             current_child.layout()
             i+= 1
+        
+        if i != 0:
+            last_child = self.children[i-1]
+            last_child.height += self.vertical_padding
 
     def layout_mode(self):
         if isinstance(self.node, Text):
@@ -185,8 +187,6 @@ class BlockLayout:
         if self.only_uppercase:
             word = word.upper()
 
-        # if self.passed_horizontal_border(word, font):
-        #     self.new_line()
         line = self.children[-1]
         previous_word = line.children[-1] if line.children else None
         text = TextLayout(node, word, line, previous_word)
@@ -197,7 +197,6 @@ class BlockLayout:
         if last_line_is_empty(last_line):
             return
 
-        # self.cursor_x = 0
         new_line = LineLayout(self.node, self, last_line, self.cursor_x)
         self.children.append(new_line)
 
@@ -216,7 +215,8 @@ class BlockLayout:
             "h1": lambda: (self.new_line(), setattr(self, 'current_tag', "h1")),
             "sup": lambda: (setattr(self, 'current_tag', "sup")),
             "abbr": lambda: (setattr(self, 'only_uppercase', True)),
-            "pre": lambda: (setattr(self, 'preformat', True)),
+            "pre": lambda: (setattr(self, 'preformat', True), setattr(self, 'vertical_padding', self.vertical_padding +self.DEFAULT_PADDING)),
+            "p": lambda: (setattr(self, 'vertical_padding', self.vertical_padding + self.DEFAULT_PADDING))
         }
         self.handle_tag(element_node, opening_tag_handlers)
 
@@ -224,9 +224,9 @@ class BlockLayout:
         closing_tag_handlers = {
             "h1": lambda: (setattr(self, 'current_tag', "")),
             "sup": lambda: (setattr(self, 'current_tag', "")),
-            "p": lambda: (self.new_line(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
             "abbr": lambda: (setattr(self, 'only_uppercase', False)),
-            "pre": lambda: (self.new_line(), setattr(self, 'preformat', False)),
+            "pre": lambda: (setattr(self, 'preformat', False), setattr(self, 'vertical_padding', self.vertical_padding - self.DEFAULT_PADDING)),
+            "p": lambda: (setattr(self, 'vertical_padding', self.vertical_padding - self.DEFAULT_PADDING ))
         }
         self.handle_tag(element_node, closing_tag_handlers)
 
