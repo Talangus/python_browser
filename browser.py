@@ -30,14 +30,19 @@ class Browser:
         self.canvas.pack(fill="both", expand=1)
         self.images = []
         self.display_list = []
+        self.url = None
 
         self.window.bind("<Down>", self.window_layout.on_scrolldown)
         self.window.bind("<Up>", self.window_layout.on_scrollup)
+        self.window.bind("<Button-1>", self.click)
         self.window.bind("<MouseWheel>", self.window_layout.on_mouse_wheel)
         self.window.bind("<Configure>", self.on_resize)
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
     
     def load(self, url):
+        self.url = url
+        self.display_list = []
+        self.window_layout.scroll = 0
         body = url.request()
         parser = get_html_parser(body, url)
         nodes = parser.parse()
@@ -48,7 +53,7 @@ class Browser:
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         paint_tree(self.document, self.display_list)
-        print_tree(self.document)
+        # print_tree(self.document)
         self.draw() 
         
     def draw(self):
@@ -76,6 +81,20 @@ class Browser:
         paint_tree(self.document, self.display_list)
         self.draw()
 
+    def click(self, e):
+        x, y = e.x, e.y
+        y += self.window_layout.scroll
+        objs = [obj for obj in tree_to_list(self.document, []) if clicked_on_obj(x, y, obj)]
+        if not objs: return
+        
+        elt = objs[-1].node
+        while elt:
+            if isinstance(elt, Text):
+                pass
+            elif elt.tag == "a" and "href" in elt.attributes:
+               url = self.url.resolve(elt.attributes["href"])
+               return self.load(url)
+            elt = elt.parent
    
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Simple python browser.")

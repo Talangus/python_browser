@@ -16,19 +16,18 @@ class TextLayout:
 
         if self.previous:
             space = self.previous.font.measure(" ")
-            self.x1 = self.previous.x2 + space 
+            self.x = self.previous.x + self.previous.width + space 
         else:
-            self.x1 = self.parent.x
+            self.x = self.parent.x
         
-        self.x2 = self.x1 + self.width
         self.height = self.font.metrics("linespace")
 
         if self.passed_line_width():
             self.parent.split_line(self)
 
     def passed_line_width(self):
-        return self.x2 > self.parent.width
+        return self.x + self.width > self.parent.width
 
     def paint(self):
         color = self.node.style["color"]
-        return [DrawText(self.x1, self.y, self.word, self.font, color)]
+        return [DrawText(self.x, self.y, self.word, self.font, color)]
