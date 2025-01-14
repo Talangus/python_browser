@@ -44,7 +44,6 @@ class LineLayout:
 
     def layout(self):                                  
         self.width = self.parent.width
-        # self.x = self.parent.x
         if self.previous:
             self.y = self.previous.y + self.previous.height
         else:

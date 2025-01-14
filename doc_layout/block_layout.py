@@ -10,7 +10,7 @@ from doc_layout.line_layout import LineLayout
 class BlockLayout:
     HSTEP = 13
     VSTEP = 18
-    DEFAULT_PADDING = 100 * VSTEP
+    DEFAULT_PADDING = 0.7 * VSTEP
 
     def __init__(self, node, parent, previous):
         self.node = node
@@ -98,7 +98,7 @@ class BlockLayout:
         if self.is_toc_first_element():
             y += 0.5 *self.VSTEP
         
-        self.y = y
+        self.y = y 
 
     def init_children(self):
         previous = None
@@ -226,7 +226,6 @@ class BlockLayout:
             "sup": lambda: (setattr(self, 'current_tag', "")),
             "abbr": lambda: (setattr(self, 'only_uppercase', False)),
             "pre": lambda: (setattr(self, 'preformat', False), setattr(self, 'vertical_padding', self.vertical_padding - self.DEFAULT_PADDING)),
-            "p": lambda: (setattr(self, 'vertical_padding', self.vertical_padding - self.DEFAULT_PADDING ))
         }
         self.handle_tag(element_node, closing_tag_handlers)
 

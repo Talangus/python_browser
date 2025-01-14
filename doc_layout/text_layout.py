@@ -1,7 +1,7 @@
 from doc_layout.utils import *
 from doc_layout.draw_text import DrawText
 
-class TextLayout: ##make sure it has the extra features implemented in previuos chapter
+class TextLayout: 
     def __init__(self, node, word, parent, previous):
         self.node = node
         self.word = word
