@@ -98,8 +98,8 @@ class Cache:
         os.remove(file_path)
 
     def clear_expired_entries(self):
-        for host_key in self.db:
-            for file_path in self.db[host_key]:
+        for host_key in list(self.db.keys()):
+            for file_path in list(self.db[host_key].keys()):
                 file_entry = self.db[host_key][file_path]
                 valid_until = file_entry['valid_until']
 
