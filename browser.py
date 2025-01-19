@@ -5,6 +5,7 @@ from network.url import URL
 from network.socket_manager import socket_manager 
 from network.cache import cache
 from tab import Tab
+from window_layout.chrome import Chrome
 from util.utils import *
 
 
@@ -22,6 +23,7 @@ class Browser:
             bg="white"
         )
         self.canvas.pack(fill="both", expand=1)
+        self.chrome = Chrome(self)
 
         self.window.bind("<Down>", self.handle_scrolldown)
         self.window.bind("<Up>", self.handle_scrollup)
@@ -39,7 +41,11 @@ class Browser:
         self.draw()
 
     def handle_click(self, e):
-        self.active_tab.click(e.x, e.y)
+        if e.y < self.chrome.bottom:
+            self.chrome.click(e.x, e.y)
+        else:
+            tab_y = e.y - self.chrome.bottom
+            self.active_tab.click(e.x, tab_y)
         self.draw()
 
     def handle_mouse_wheel(self, e):
@@ -62,10 +68,12 @@ class Browser:
 
     def draw(self):
         self.canvas.delete("all")
-        self.active_tab.draw(self.canvas)
+        self.active_tab.draw(self.canvas, self.chrome.bottom)
+        for cmd in self.chrome.paint():
+            cmd.execute(0, self.canvas)
 
     def new_tab(self, url):
-        new_tab = Tab(self.width, self.height)
+        new_tab = Tab(self.width, self.height - self.chrome.bottom)
         new_tab.load(url)
         self.active_tab = new_tab
         self.tabs.append(new_tab)

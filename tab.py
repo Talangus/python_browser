@@ -16,10 +16,11 @@ class Tab:
         self.images = []
         self.display_list = []
         self.url = None
-
+        self.history = []
         
     
     def load(self, url):
+        self.history.append(url)
         self.url = url
         self.display_list = []
         self.tab_layout.scroll = 0
@@ -35,12 +36,12 @@ class Tab:
         paint_tree(self.document, self.display_list)
         # print_tree(self.document)
         
-    def draw(self, canvas):
+    def draw(self, canvas, offset):
         self.tab_layout.handle_scrollbar(canvas)
         for cmd in self.display_list:
             if self.tab_layout.is_below_viewport(cmd): continue
-            if self.tab_layout.is_above_viewport(cmd): continue
-            cmd.execute(self.tab_layout.scroll, canvas)
+            if self.tab_layout.is_above_viewport(cmd, offset): continue
+            cmd.execute(self.tab_layout.scroll - offset, canvas)
 
     def on_resize(self, width, height):
         self.width = width
@@ -65,7 +66,11 @@ class Tab:
                return self.load(url)
             elt = elt.parent
    
-
+    def go_back(self):
+        if len(self.history) > 1:
+            self.history.pop()
+            back = self.history.pop()
+            self.load(back)
 
     
 

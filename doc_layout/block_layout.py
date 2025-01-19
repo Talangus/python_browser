@@ -1,10 +1,10 @@
 from util.utils import *
 from doc_layout.utils import *
 from html_.element import Element
-from doc_layout.draw_text import DrawText
 from doc_layout.draw_rect import DrawRect
 from doc_layout.text_layout import TextLayout
 from doc_layout.line_layout import LineLayout
+from window_layout.rect import Rect
 
 
 class BlockLayout:
@@ -33,7 +33,10 @@ class BlockLayout:
             self.in_head = None
         else:    
             self.in_head = self.node_is("head")
-        
+    
+    def self_rect(self):
+        return Rect(self.x, self.y,
+            self.x + self.width, self.y + self.height)    
 
     def paint(self):
         cmds = []
@@ -46,8 +49,6 @@ class BlockLayout:
             return []
         
         bgcolor = self.node.style.get("background-color", "transparent")
-        x2 = self.x + self.width
-        y2 = self.y + self.height
         rect_cmds = []
 
         predicates = {"li": lambda: self.node_is("li")}
@@ -58,7 +59,7 @@ class BlockLayout:
                 rect_cmds.append(cmd_gen[key]())
 
         if bgcolor != "transparent":
-            rect_cmds.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
+            rect_cmds.append(DrawRect(self.self_rect(), bgcolor))
 
         return rect_cmds
     
@@ -79,7 +80,7 @@ class BlockLayout:
         x1, y1 = self.x, self.y + top_offset
         x2, y2 = x1 + square_size, y1 + square_size
 
-        return DrawRect(x1, y1, x2, y2, "black")
+        return DrawRect(Rect(x1, y1, x2, y2), "black")
     
     def init_coordinates(self):
         self.x = self.parent.x

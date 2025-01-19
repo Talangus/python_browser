@@ -1,5 +1,7 @@
+from window_layout.rect import Rect
 class DrawText:
-    def __init__(self, x1, y1, text, font, color):
+    def __init__(self,x1, y1, text, font, color):
+        self.rect = Rect(x1, y1, x1 + font.measure(text), y1 + font.metrics("linespace"))
         self.top = y1
         self.left = x1
         self.text = text

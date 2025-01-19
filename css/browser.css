@@ -52,6 +52,9 @@ p {
 hr {
     display: block;
 }
+iframe {
+    display: block;
+}
 pre {
     display: block;
     background-color: gray;
