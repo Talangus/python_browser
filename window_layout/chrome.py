@@ -9,24 +9,32 @@ from network.url import URL
 class Chrome:
     def __init__(self, browser):
         self.browser = browser
-        self.font = get_font(20, "normal", "roman", "Arial")
-        self.font_height = self.font.metrics("linespace")
         self.padding = 5
-        self.tabbar_top = 0
-        self.tabbar_bottom = self.font_height + 2*self.padding
         self.focus = None
         self.address_bar = ""
         
+        self.init_tab_bar()
+        self.init_url_bar()
+        self.bottom = self.urlbar_bottom
+
+        
+
+    def init_tab_bar(self):
+        self.font = get_font(20, "normal", "roman", "Arial")
+        self.font_height = self.font.metrics("linespace")
+
+        self.tabbar_top = 0
+        self.tabbar_bottom = self.font_height + 2*self.padding
         plus_width = self.font.measure("+") + 2*self.padding
+
         self.newtab_rect = Rect(
            self.padding, self.padding,
            self.padding + plus_width,
            self.padding + self.font_height)
-        
+
+    def init_url_bar(self):
         self.urlbar_top = self.tabbar_bottom
         self.urlbar_bottom = self.urlbar_top + self.font_height + 2*self.padding
-        self.bottom = self.urlbar_bottom
-
         back_width = self.font.measure("<") + 2*self.padding
         self.back_rect = Rect(
             self.padding,
@@ -39,7 +47,7 @@ class Chrome:
             self.urlbar_top + self.padding,
             self.browser.width - self.padding,
             self.urlbar_bottom - self.padding)
-        
+    
     def tab_rect(self, i):
         tabs_start = self.newtab_rect.right + self.padding
         tab_width = self.font.measure("Tab X") + 2*self.padding
@@ -49,12 +57,21 @@ class Chrome:
     
     def paint(self):
         cmds = []
+        self.paint_new_tab_button(cmds)
+        self.paint_tabs(cmds)
+        self.paint_back_button(cmds)
+        self.paint_address_bar(cmds)
+
+        return cmds
+
+    def paint_new_tab_button(self, cmds):
         cmds.append(DrawOutline(self.newtab_rect, "black", 1))
         cmds.append(DrawText(
             self.newtab_rect.left + self.padding,
             self.newtab_rect.top,
             "+", self.font, "black"))
-        
+    
+    def paint_tabs(self,cmds):
         for i, tab in enumerate(self.browser.tabs):
             bounds = self.tab_rect(i)
             cmds.append(DrawLine(
@@ -74,19 +91,16 @@ class Chrome:
                 cmds.append(DrawLine(
                     bounds.right, bounds.bottom, self.browser.width, bounds.bottom,
                     "black", 1))
-        
+
+    def paint_back_button(self, cmds):
         cmds.append(DrawOutline(self.back_rect, "black", 1))
         cmds.append(DrawText(
             self.back_rect.left + self.padding,
             self.back_rect.top,
             "<", self.font, "black"))
-        
+
+    def paint_address_bar(self, cmds):
         cmds.append(DrawOutline(self.address_rect, "black", 1))
-        # url = str(self.browser.active_tab.url)
-        # cmds.append(DrawText(
-        #     self.address_rect.left + self.padding,
-        #     self.address_rect.top,
-        #     url, self.font, "black"))
         if self.focus == "address bar":
             cmds.append(DrawText(
                 self.address_rect.left + self.padding,
@@ -105,8 +119,6 @@ class Chrome:
                 self.address_rect.left + self.padding,
                 self.address_rect.top,
                 url, self.font, "black"))
-
-        return cmds
 
     def click(self, x, y):
         self.focus = None
