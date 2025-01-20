@@ -1,65 +1,27 @@
 from util.utils import *
+from doc_layout.utils import *
 from html_.element import Element
-from doc_layout.draw_text import DrawText
 from doc_layout.draw_rect import DrawRect
-import tkinter.font
+from doc_layout.text_layout import TextLayout
+from doc_layout.line_layout import LineLayout
+from window_layout.rect import Rect
 
-FONTS = {}
-DEFAULT_FONT_FAMILY = "Arial"
-DEFAULT_WEIGHT = "normal"
-DEFAULT_STYLE= "roman"
-DEFAULT_SIZE = 12
-
-def get_font(size, weight, style, family):
-        key = (size, weight, style, family)
-        if key not in FONTS:
-            font = tkinter.font.Font(size=size, weight=weight,
-                slant=style, family=family)
-            label = tkinter.Label(font=font)
-            FONTS[key] = (font, label)
-        return FONTS[key][0]
-
-def get_html_node_font(node):
-    weight = node.style["font-weight"]
-    style = node.style["font-style"]
-    if style == "normal": style = "roman"
-    size = int(float(node.style["font-size"][:-2]) * .75)
-    font_family = node.style["font-family"]
-
-    return get_font(size, weight, style, font_family)
-
-def get_html_node_font(node):
-    weight = node.style["font-weight"]
-    style = node.style["font-style"]
-    if style == "normal": style = "roman"
-    size = int(float(node.style["font-size"][:-2]) * .75)
-    font_family = node.style["font-family"]
-
-    return get_font(size, weight, style, font_family)
-
-BLOCK_ELEMENTS = [
-    "html", "body", "article", "section", "nav", "aside",
-    "h1", "h2", "h3", "h4", "h5", "h6", "hgroup", "header",
-    "footer", "address", "p", "hr", "pre", "blockquote",
-    "ol", "ul", "menu", "li", "dl", "dt", "dd", "figure",
-    "figcaption", "main", "div", "table", "form", "fieldset",
-    "legend", "details", "summary"
-]
 
 class BlockLayout:
     HSTEP = 13
     VSTEP = 18
+    DEFAULT_PADDING = 0.7 * VSTEP
 
     def __init__(self, node, parent, previous):
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
-        self.display_list = []
         self.x = None
         self.y = None
         self.width = None
-        self.height = None
+        self.height = 0
+        self.vertical_padding = 0
         self.init_in_head()
        
     def init_in_head(self):
@@ -71,29 +33,22 @@ class BlockLayout:
             self.in_head = None
         else:    
             self.in_head = self.node_is("head")
-        
+    
+    def self_rect(self):
+        return Rect(self.x, self.y,
+            self.x + self.width, self.y + self.height)    
 
     def paint(self):
         cmds = []
         cmds.extend(self.get_rectangels_cmds())
-        cmds.extend(self.get_text_cmds())
             
         return cmds 
     
-    def get_text_cmds(self):
-        cmds = []
-        if self.layout_mode() == "inline":
-            for x, y, word, font, color in self.display_list:
-                    cmds.append(DrawText(x, y, word, font, color))
-        return cmds
-
     def get_rectangels_cmds(self):
         if not isinstance(self.node, Element):
             return []
         
         bgcolor = self.node.style.get("background-color", "transparent")
-        x2 = self.x + self.width
-        y2 = self.y + self.height
         rect_cmds = []
 
         predicates = {"li": lambda: self.node_is("li")}
@@ -104,7 +59,7 @@ class BlockLayout:
                 rect_cmds.append(cmd_gen[key]())
 
         if bgcolor != "transparent":
-            rect_cmds.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
+            rect_cmds.append(DrawRect(self.self_rect(), bgcolor))
 
         return rect_cmds
     
@@ -125,7 +80,7 @@ class BlockLayout:
         x1, y1 = self.x, self.y + top_offset
         x2, y2 = x1 + square_size, y1 + square_size
 
-        return DrawRect(x1, y1, x2, y2, "black")
+        return DrawRect(Rect(x1, y1, x2, y2), "black")
     
     def init_coordinates(self):
         self.x = self.parent.x
@@ -144,8 +99,7 @@ class BlockLayout:
         if self.is_toc_first_element():
             y += 0.5 *self.VSTEP
         
-        self.y = y
-        
+        self.y = y 
 
     def init_children(self):
         previous = None
@@ -156,44 +110,31 @@ class BlockLayout:
     
     def init_text_properties(self):
         self.init_cursor_x()
-        self.cursor_y = 0
         self.only_uppercase = False
         self.current_tag = ''
         self.current_tag_class = ''
         self.preformat = False
 
     def init_cursor_x(self):
+        self.cursor_x = self.VSTEP
         if self.node_is("li"):
-            self.cursor_x = self.VSTEP
-        else:
-            self.cursor_x = 0
-
-    def init_cursor_y(self):
-        if self.is_toc_first_element():
-            self.cursor_y = self.VSTEP
-        else:
-            self.cursor_y = 0
-          
+            self.cursor_x += 0.5 * self.VSTEP
+        
 
     def layout_text(self):
         self.init_text_properties()
         if not self.in_head:
-            self.line = []
+            self.new_line()
             self.recurse(self.node)
-            self.flush()
 
     def calculate_hight(self,mode):
         if not self.is_auto_property('height'):
-            self.height =  px_str_to_int(self.node.style["height"])
+            self.height +=  px_str_to_int(self.node.style["height"])
             return
         
-        if mode == "block":
-            self.height = sum([child.height for child in self.children])
-            if len(self.children) > 0:
-                self.height += self.get_child_vertical_distance()
-            return
-
-        self.height = self.cursor_y
+        self.height += sum([child.height for child in self.children])
+        if len(self.children) > 0:
+            self.height += self.get_child_vertical_distance()
 
     def layout(self):
         self.init_coordinates()
@@ -204,11 +145,21 @@ class BlockLayout:
         else:
             self.layout_text()
             
-        for child in self.children:
-            child.layout()
+        self.layout_children()
 
         self.calculate_hight(mode)
+
+    def layout_children(self):
+        i = 0
+        while (i < len(self.children)):
+            current_child = self.children[i]
+            current_child.layout()
+            i+= 1
         
+        if i != 0:
+            last_child = self.children[i-1]
+            last_child.height += self.vertical_padding
+
     def layout_mode(self):
         if isinstance(self.node, Text):
             return "inline"
@@ -232,50 +183,23 @@ class BlockLayout:
                 self.recurse(child)
             self.close_tag(tree)
 
-    def flush(self):
-        if not self.line: return
-        metrics = [font.metrics() for x, word, font, y_align, color in self.line]
-        max_ascent = max([metric["ascent"] for metric in metrics])
-        baseline = self.cursor_y + 1.25 * max_ascent
-        
-        for rel_x, word, font, y_align, color in self.line:
-            x = self.x + rel_x
-            y = self.y
-            
-            if y_align:
-                top_alignment = baseline - max_ascent
-                y += top_alignment
-            else:
-                y += baseline - font.metrics("ascent")
-            self.display_list.append((x, y, word, font, color))
-            
-        max_descent = max([metric["descent"] for metric in metrics])
-        self.cursor_y = baseline + 1.25 * max_descent
-        self.cursor_x = 0
-        self.line = []
-            
     def word(self, node, word):
-        if word == "\n":
-            self.flush()
-            return
-        
         font = get_html_node_font(node)
-        color = node.style["color"]
         if self.only_uppercase:
             word = word.upper()
-        w = font.measure(word)
 
-        if self.passed_horizontal_border(word, font):
-            if self.should_split_on_hypen(word, font):
-                before_split, after_split = self.split_on_hypen(word, font)
-                self.line.append((self.cursor_x, before_split, font, self.should_align_vertical(), color))
-                self.flush()
-                self.word(node ,after_split)
-                return
-            else: self.flush()
+        line = self.children[-1]
+        previous_word = line.children[-1] if line.children else None
+        text = TextLayout(node, word, line, previous_word)
+        line.children.append(text)
 
-        self.line.append((self.cursor_x, word, font, self.should_align_vertical(), color))
-        self.cursor_x += w + font.measure(" ")
+    def new_line(self):
+        last_line = self.children[-1] if self.children else None
+        if last_line_is_empty(last_line):
+            return
+
+        new_line = LineLayout(self.node, self, last_line, self.cursor_x)
+        self.children.append(new_line)
 
     def handle_tag(self, element_node, tag_handlers):
         if element_node.tag in tag_handlers:
@@ -288,21 +212,21 @@ class BlockLayout:
     
     def open_tag(self, element_node):
         opening_tag_handlers = {
-            "br": self.flush,
-            "h1": lambda: (self.flush(), setattr(self, 'current_tag', "h1")),
+            "br": self.new_line,
+            "h1": lambda: (self.new_line(), setattr(self, 'current_tag', "h1")),
             "sup": lambda: (setattr(self, 'current_tag', "sup")),
             "abbr": lambda: (setattr(self, 'only_uppercase', True)),
-            "pre": lambda: (setattr(self, 'preformat', True)),
+            "pre": lambda: (setattr(self, 'preformat', True), setattr(self, 'vertical_padding', self.vertical_padding +self.DEFAULT_PADDING)),
+            "p": lambda: (setattr(self, 'vertical_padding', self.vertical_padding + self.DEFAULT_PADDING))
         }
         self.handle_tag(element_node, opening_tag_handlers)
 
     def close_tag(self, element_node):
         closing_tag_handlers = {
-            "h1": lambda: (self.flush(), setattr(self, 'current_tag', "")),
+            "h1": lambda: (setattr(self, 'current_tag', "")),
             "sup": lambda: (setattr(self, 'current_tag', "")),
-            "p": lambda: (self.flush(), setattr(self, 'cursor_y', self.cursor_y + BlockLayout.VSTEP)),
             "abbr": lambda: (setattr(self, 'only_uppercase', False)),
-            "pre": lambda: (self.flush(), setattr(self, 'preformat', False)),
+            "pre": lambda: (setattr(self, 'preformat', False), setattr(self, 'vertical_padding', self.vertical_padding - self.DEFAULT_PADDING)),
         }
         self.handle_tag(element_node, closing_tag_handlers)
 
@@ -319,12 +243,6 @@ class BlockLayout:
     def should_align_vertical(self):
         return self.current_tag == 'sup'
     
-    def passed_horizontal_border(self, word ,font):
-        if self.preformat:
-            return False
-        w = font.measure(word)
-        return self.cursor_x + w > self.width 
-
     def should_split_on_hypen(self, word, font):
         indexes = BlockLayout.get_soft_hyphen_positions(word)
         if len(indexes) == 0:

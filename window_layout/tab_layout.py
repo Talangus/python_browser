@@ -1,25 +1,25 @@
 from window_layout.coordinate import Coordinate
 
-class WindowLayout:
+class TabLayout:
     SCROLL_STEP = 100
     HSTEP = 13
     VSTEP = 18
 
-    def __init__(self, browser, scroll):
-        self.browser = browser
-        self.height = browser.height
-        self.width = browser.width
+    def __init__(self, tab):
+        self.tab = tab
+        self.height = tab.height
+        self.width = tab.width
         self.scroll = 0 
 
     def update_size(self):
-        self.height = self.browser.height
-        self.width = self.browser.width
+        self.height = self.tab.height
+        self.width = self.tab.width
 
     def is_below_viewport(self, cmd):
-        return cmd.top > self.scroll + self.height
+        return cmd.rect.top > self.scroll + self.height
     
-    def is_above_viewport(self,cmd):
-        return cmd.bottom + self.VSTEP < self.scroll
+    def is_above_viewport(self,cmd, offset):
+        return cmd.rect.bottom + self.VSTEP < self.scroll + offset
 
     def on_scrolldown(self, event):
         tmp_scroll = self.scroll + self.SCROLL_STEP
@@ -28,26 +28,17 @@ class WindowLayout:
             tmp_scroll = max_scroll
         
         self.scroll = tmp_scroll
-        self.browser.draw()
 
     def get_max_scroll(self):
-        page_bottom = self.get_page_bottom()
+        page_bottom = self.tab.document.height
+
         if page_bottom <= self.height:
             max_scroll = 0
         else:
-            max_scroll = page_bottom - self.height + self.VSTEP
+            max_scroll = page_bottom - self.height + 2*self.VSTEP
         
         return max_scroll
     
-    def get_page_bottom(self):
-        display_list = self.browser.display_list
-        if len(display_list) ==0:
-            return 0.001
-        last_index = len(display_list) - 1
-        last_item = display_list[last_index]
-        lowest_y = last_item.bottom
-        return lowest_y
-
     def on_scrollup(self, event):
         tmp_scroll = self.scroll - self.SCROLL_STEP
         if tmp_scroll < 0:
@@ -55,7 +46,6 @@ class WindowLayout:
         else:
             self.scroll = tmp_scroll
         
-        self.browser.draw()
         
     def on_mouse_wheel(self, event):
         if event.delta > 0:
@@ -63,12 +53,12 @@ class WindowLayout:
         else:
             self.on_scrolldown(event)
 
-    def handle_scrollbar(self):
+    def handle_scrollbar(self, canvas):
         if not self.need_scrollbar():
             return
         
         top_left ,bottom_right = self.get_scrollbar_coordinates()
-        self.browser.canvas.create_rectangle(*top_left ,*bottom_right, fill="blue")
+        canvas.create_rectangle(*top_left ,*bottom_right, fill="blue")
 
     def need_scrollbar(self):
         scrollbar_hight = self.get_scorllbar_hight()
@@ -83,14 +73,14 @@ class WindowLayout:
         return top_left ,bottom_right
 
     def get_scorllbar_hight(self):
-        page_bottom = self.get_page_bottom()
+        page_bottom = self.tab.document.height or 0.01
         viewport_to_page_ratio = self.height / page_bottom
         scrollbar_hight = viewport_to_page_ratio * self.height
         fit_to_screen_hight = scrollbar_hight * 0.92
         return fit_to_screen_hight
         
     def get_scrollbar_top_left(self):
-        page_bottom = self.get_page_bottom()
+        page_bottom = self.tab.document.height
         scroll_to_bottom_ratio = self.scroll / page_bottom
         scroll_bar_top = scroll_to_bottom_ratio * self.height
         fit_to_screen_top = scroll_bar_top + 3

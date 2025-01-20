@@ -17,7 +17,7 @@ class URL:
         "view-source": None
         }
     DATA_URL_TYPES=["text"]
-
+    
     def __init__(self, url):
         try:
             self.scheme, rest = URL.parse_scheme(url)
@@ -50,6 +50,14 @@ class URL:
         self.redirect_count = 0
         self.cache_max_age = None
     
+    def __str__(self):
+        port_part = ":" + str(self.port)
+        if self.scheme == "https" and self.port == 443:
+            port_part = ""
+        if self.scheme == "http" and self.port == 80:
+            port_part = ""
+        return self.scheme + "://" + self.host + port_part + self.path
+
     #rfc2397#section-2
     def process_data_scheme(self, rest):
         self.data_is_base64 = False 

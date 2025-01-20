@@ -102,3 +102,6 @@ def paint_tree(layout_object, display_list):
     display_list.extend(layout_object.paint())
     for child in layout_object.children:
         paint_tree(child, display_list)
+
+def clicked_on_obj(x,y, obj):
+    return obj.x <= x < obj.x + obj.width and obj.y <= y < obj.y + obj.height
