@@ -73,7 +73,7 @@ class TabLayout:
         return top_left ,bottom_right
 
     def get_scorllbar_hight(self):
-        page_bottom = self.tab.document.height
+        page_bottom = self.tab.document.height or 0.01
         viewport_to_page_ratio = self.height / page_bottom
         scrollbar_hight = viewport_to_page_ratio * self.height
         fit_to_screen_hight = scrollbar_hight * 0.92

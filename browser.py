@@ -31,6 +31,8 @@ class Browser:
         self.window.bind("<MouseWheel>", self.handle_mouse_wheel)
         self.window.bind("<Configure>", self.handle_resize)
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.window.bind("<Key>", self.handle_key)
+        self.window.bind("<Return>", self.handle_enter)
 
     def handle_scrolldown(self, e):
         self.active_tab.tab_layout.on_scrolldown()
@@ -59,6 +61,16 @@ class Browser:
         self.width = event.width
         self.height = event.height
         self.active_tab.on_resize(event.width, event.height)
+        self.draw()
+
+    def handle_key(self, e):
+        if len(e.char) == 0: return
+        if not (0x20 <= ord(e.char) < 0x7f): return
+        self.chrome.keypress(e.char)
+        self.draw()
+
+    def handle_enter(self, e):
+        self.chrome.enter()
         self.draw()
 
     def on_close(self):
