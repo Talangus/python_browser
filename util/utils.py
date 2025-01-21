@@ -6,18 +6,6 @@ from pathlib import Path
 class CustomError(Exception):
     pass
 
-class Text:
-    def __init__(self, text, parent):
-        self.text = text
-        self.children = []
-        self.parent = parent
-        self.is_html_element_text = False
-
-    def __repr__(self):
-        return repr(self.text)
-    
-    def is_tag(self, tag):
-        return False
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 

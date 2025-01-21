@@ -1,6 +1,6 @@
 from util.utils import *
 from html_.element import Element
-
+from html_.text import Text
 class HTMLParser:
 
     SELF_CLOSING_TAGS = [

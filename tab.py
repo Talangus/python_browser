@@ -1,7 +1,8 @@
 from window_layout.tab_layout import TabLayout
 from doc_layout.document_layout import DocumentLayout
 from html_.html_decode import html_decode
-from html_.utils import get_html_parser
+from html_.utils import get_html_parser,get_html_title
+from html_.text import Text
 from css.css_parser import style, CSSParser
 from css.utils import get_css_rules
 from util.utils import *
@@ -28,6 +29,7 @@ class Tab:
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
+        self.title = get_html_title(self.nodes)
         rules = self.DEFAULT_STYLE_SHEET.copy()
         rules.extend(get_css_rules(self.nodes ,url))
         style(self.nodes, sorted(rules, key=cascade_priority), {})
@@ -53,24 +55,32 @@ class Tab:
         paint_tree(self.document, self.display_list)
 
     def click(self, x, y):
-        y += self.tab_layout.scroll
-        objs = [obj for obj in tree_to_list(self.document, []) if clicked_on_obj(x, y, obj)]
-        if not objs: return
-        
-        elt = objs[-1].node
-        while elt:
-            if isinstance(elt, Text):
-                pass
-            elif elt.tag == "a" and "href" in elt.attributes:
-               url = self.url.resolve(elt.attributes["href"])
-               return self.load(url)
-            elt = elt.parent
-   
+        url = self.get_clicked_url(x, y)
+        self.load(url)
+
     def go_back(self):
         if len(self.history) > 1:
             self.history.pop()
             back = self.history.pop()
             self.load(back)
+
+    def get_clicked_url(self, x, y):
+        y += self.tab_layout.scroll
+        objs = [obj for obj in tree_to_list(self.document, []) if clicked_on_obj(x, y, obj)]
+        if not objs: return
+        
+        element = objs[-1].node
+        while element:
+            if isinstance(element, Text):
+                pass
+            elif element.tag == "a" and "href" in element.attributes:
+                url = self.url.resolve(element.attributes["href"])
+                return url
+               
+            element = element.parent 
+        
+        return None
+       
 
     
 

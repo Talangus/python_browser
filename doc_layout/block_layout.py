@@ -1,6 +1,7 @@
 from util.utils import *
 from doc_layout.utils import *
 from html_.element import Element
+from html_.text import Text
 from doc_layout.draw_rect import DrawRect
 from doc_layout.text_layout import TextLayout
 from doc_layout.line_layout import LineLayout

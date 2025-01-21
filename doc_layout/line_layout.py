@@ -48,14 +48,18 @@ class LineLayout:
             self.y = self.previous.y + self.previous.height
         else:
             self.y = self.parent.y + self.parent.vertical_padding
-        
-        self.layout_children()
-        max_ascent = max([word.font.metrics("ascent") for word in self.children])
-        baseline = self.y + 1.25 * max_ascent
-        for word in self.children:
-            word.y = baseline - word.font.metrics("ascent")
-        max_descent = max([word.font.metrics("descent") for word in self.children])
-        self.height = 1.25 * (max_ascent + max_descent) 
+        try:
+            self.layout_children()
+            max_ascent = max([word.font.metrics("ascent") for word in self.children])
+            baseline = self.y + 1.25 * max_ascent
+            for word in self.children:
+                word.y = baseline - word.font.metrics("ascent")
+            max_descent = max([word.font.metrics("descent") for word in self.children])
+            self.height = 1.25 * (max_ascent + max_descent)
+        except Exception as e:
+            print("Error in line layout, skipping line")
+            self.height = 0
+
 
     def paint(self):
         return []
