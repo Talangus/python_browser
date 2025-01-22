@@ -18,7 +18,7 @@ class Tab:
         self.display_list = []
         self.url = None
         self.history = []
-        
+        self.forward_stack = []
     
     def load(self, url):
         self.history.append(url)
@@ -56,13 +56,20 @@ class Tab:
 
     def click(self, x, y):
         url = self.get_clicked_url(x, y)
-        self.load(url)
+        if url:
+            self.load(url)
 
     def go_back(self):
         if len(self.history) > 1:
-            self.history.pop()
+            current_page = self.history.pop()
+            self.forward_stack.append(current_page)
             back = self.history.pop()
             self.load(back)
+
+    def go_forward(self):
+        if len(self.forward_stack) > 0:
+            forward_page = self.forward_stack.pop()
+            self.load(forward_page)
 
     def get_clicked_url(self, x, y):
         y += self.tab_layout.scroll
