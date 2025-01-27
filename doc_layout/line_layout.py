@@ -60,6 +60,5 @@ class LineLayout:
             print("Error in line layout, skipping line")
             self.height = 0
 
-
     def paint(self):
         return []

@@ -1,6 +1,7 @@
 from window_layout.tab_layout import TabLayout
 from doc_layout.document_layout import DocumentLayout
 from html_.html_decode import html_decode
+
 from html_.utils import get_html_parser,get_html_title
 from html_.text import Text
 from css.css_parser import style, CSSParser
@@ -30,6 +31,7 @@ class Tab:
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
         self.title = get_html_title(self.nodes)
+
         rules = self.DEFAULT_STYLE_SHEET.copy()
         rules.extend(get_css_rules(self.nodes ,url))
         style(self.nodes, sorted(rules, key=cascade_priority), {})
@@ -73,6 +75,7 @@ class Tab:
             self.load(forward_page)
 
     def get_clicked_url(self, x, y):
+
         y += self.tab_layout.scroll
         objs = [obj for obj in tree_to_list(self.document, []) if clicked_on_obj(x, y, obj)]
         if not objs: return
@@ -95,4 +98,5 @@ class Tab:
         
         self.tab_layout.scroll_to_hash(self.url.fragment)
         
+
 

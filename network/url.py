@@ -56,11 +56,11 @@ class URL:
             port_part = ""
         if self.scheme == "http" and self.port == 80:
             port_part = ""
-        
         url_str = self.scheme + "://" + self.host + port_part + self.path
         if self.fragment:
             url_str = url_str + "#" + self.fragment
         return url_str
+
 
     #rfc2397#section-2
     def process_data_scheme(self, rest):

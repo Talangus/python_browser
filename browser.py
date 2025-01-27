@@ -37,6 +37,7 @@ class Browser:
         self.window.bind("<Button-3>", self.handle_middle_click)
 
 
+
     def handle_scrolldown(self, e):
         self.active_tab.tab_layout.on_scrolldown()
         self.draw()

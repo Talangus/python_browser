@@ -68,6 +68,7 @@ class Chrome:
         self.paint_tabs(cmds)
         self.paint_back_button(cmds)
         self.paint_forward_button(cmds)
+
         self.paint_address_bar(cmds)
 
         return cmds
@@ -115,6 +116,7 @@ class Chrome:
             self.forward_rect.left + self.padding,
             self.forward_rect.top,
             ">", self.font, color))
+
 
     def paint_address_bar(self, cmds):
         cmds.append(DrawOutline(self.address_rect, "black", 1))
@@ -166,3 +168,4 @@ class Chrome:
     def backspace(self):
         if self.focus == "address bar" and len(self.address_bar) != 0:
             self.address_bar = self.address_bar[:-1]
+
