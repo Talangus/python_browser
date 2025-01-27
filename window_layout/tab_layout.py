@@ -19,7 +19,7 @@ class TabLayout:
         return cmd.rect.top > self.scroll + self.height
     
     def is_above_viewport(self,cmd, offset):
-        return cmd.rect.bottom + self.VSTEP < self.scroll - offset
+        return cmd.rect.top < self.scroll
 
     def on_scrolldown(self, event):
         tmp_scroll = self.scroll + self.SCROLL_STEP
@@ -35,7 +35,7 @@ class TabLayout:
         if page_bottom <= self.height:
             max_scroll = 0
         else:
-            max_scroll = page_bottom - self.height + 2*self.VSTEP
+            max_scroll = page_bottom - (self.height - 4*self.VSTEP)
         
         return max_scroll
     
