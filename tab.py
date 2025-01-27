@@ -36,6 +36,7 @@ class Tab:
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         paint_tree(self.document, self.display_list)
+        self.handle_fragment()
         # print_tree(self.document)
         
     def draw(self, canvas, offset):
@@ -88,6 +89,10 @@ class Tab:
         
         return None
        
-
-    
+    def handle_fragment(self):
+        if not self.url.fragment:
+            return
+        
+        self.tab_layout.scroll_to_hash(self.url.fragment)
+        
 

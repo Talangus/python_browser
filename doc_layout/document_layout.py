@@ -19,7 +19,7 @@ class DocumentLayout:
         child = BlockLayout(self.node, self, None)
         self.children.append(child)
         self.x = self.HSTEP
-        self.y = self.VSTEP
+        self.y = 0
         child.layout()
         self.height = child.height
 
