@@ -14,7 +14,8 @@ INHERITED_PROPERTIES = {
 }
 
 LIMITED_PROPERTIES = {
-    "display" : ["block", "inline"]
+    "display" : ["block", "inline"],
+    "font-weight": ["normal", "bold"]
 }
 
 DEFAULT_PROPERTIES = {

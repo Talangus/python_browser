@@ -33,6 +33,10 @@ class Browser:
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
         self.window.bind("<Key>", self.handle_key)
         self.window.bind("<Return>", self.handle_enter)
+        self.window.bind("<BackSpace>", self.handle_backspace)
+        self.window.bind("<Button-3>", self.handle_middle_click)
+
+
 
     def handle_scrolldown(self, e):
         self.active_tab.tab_layout.on_scrolldown()
@@ -46,9 +50,18 @@ class Browser:
         if e.y < self.chrome.bottom:
             self.chrome.click(e.x, e.y)
         else:
+            self.chrome.focus = 'None'
             tab_y = e.y - self.chrome.bottom
             self.active_tab.click(e.x, tab_y)
         self.draw()
+
+    def handle_middle_click(self, e):
+        if e.y >= self.chrome.bottom:
+            tab_y = e.y - self.chrome.bottom
+            url = self.active_tab.get_clicked_url(e.x, tab_y)
+            if url:
+                self.new_tab(url)
+                self.draw()
 
     def handle_mouse_wheel(self, e):
         self.active_tab.tab_layout.on_mouse_wheel(e)
@@ -73,12 +86,17 @@ class Browser:
         self.chrome.enter()
         self.draw()
 
+    def handle_backspace(self, e):
+        self.chrome.backspace()
+        self.draw()
+
     def on_close(self):
         socket_manager.close_all()
         cache.clear_expired_entries()
         self.window.destroy()
 
     def draw(self):
+        self.window.title(self.active_tab.title)
         self.canvas.delete("all")
         self.active_tab.draw(self.canvas, self.chrome.bottom)
         for cmd in self.chrome.paint():

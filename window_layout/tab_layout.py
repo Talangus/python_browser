@@ -1,4 +1,5 @@
 from window_layout.coordinate import Coordinate
+from util.utils import tree_to_list
 
 class TabLayout:
     SCROLL_STEP = 100
@@ -19,7 +20,8 @@ class TabLayout:
         return cmd.rect.top > self.scroll + self.height
     
     def is_above_viewport(self,cmd, offset):
-        return cmd.rect.bottom + self.VSTEP < self.scroll + offset
+        return cmd.rect.top < self.scroll
+
 
     def on_scrolldown(self, event):
         tmp_scroll = self.scroll + self.SCROLL_STEP
@@ -35,7 +37,8 @@ class TabLayout:
         if page_bottom <= self.height:
             max_scroll = 0
         else:
-            max_scroll = page_bottom - self.height + 2*self.VSTEP
+            max_scroll = page_bottom - (self.height - 4*self.VSTEP)
+
         
         return max_scroll
     
@@ -86,3 +89,12 @@ class TabLayout:
         fit_to_screen_top = scroll_bar_top + 3
         top_left = Coordinate(self.width - self.VSTEP, fit_to_screen_top)
         return top_left
+    
+    def scroll_to_hash(self, fragment):
+        layout_nodes = tree_to_list(self.tab.document, [])
+        for layout_node in layout_nodes:
+            html_node = layout_node.node
+            if html_node.has_attribute("id",fragment):
+                self.scroll = layout_node.y
+                return
+

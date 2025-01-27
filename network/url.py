@@ -40,7 +40,7 @@ class URL:
             self.is_view_source = False
             return 
 
-        self.path = "/" + rest
+        self.path, self.fragment = URL.parse_path_fragment(rest)
         self.headers = {"Host": self.host,
                         "Connection": "keep-alive",
                         "User-Agent":"Tal_browser",
@@ -56,7 +56,11 @@ class URL:
             port_part = ""
         if self.scheme == "http" and self.port == 80:
             port_part = ""
-        return self.scheme + "://" + self.host + port_part + self.path
+        url_str = self.scheme + "://" + self.host + port_part + self.path
+        if self.fragment:
+            url_str = url_str + "#" + self.fragment
+        return url_str
+
 
     #rfc2397#section-2
     def process_data_scheme(self, rest):
@@ -221,6 +225,9 @@ class URL:
         return self.redirect_count
     
     def resolve(self, url):
+        if url.startswith("#"):
+            self.fragment = url[1:]
+            return self
         if "://" in url: return URL(url)
         if not url.startswith("/"):
             dir, _ = self.path.rsplit("/", 1)
@@ -270,6 +277,16 @@ class URL:
             port = URL.SUPPORTED_SCHEME_PORTS[scheme]
 
         return host, port
+    
+    @staticmethod
+    def parse_path_fragment(rest):
+        fragment = ''
+        if "#" in rest:
+            path, fragment = rest.split("#", 1)
+        else:
+            path = rest
+
+        return "/" + path, fragment
     
     @staticmethod
     def parse_status_line(response):
