@@ -5,6 +5,7 @@ from html_.text import Text
 from doc_layout.draw_rect import DrawRect
 from doc_layout.text_layout import TextLayout
 from doc_layout.line_layout import LineLayout
+from doc_layout.input_layout import InputLayout
 from window_layout.rect import Rect
 
 
@@ -167,7 +168,7 @@ class BlockLayout:
         elif any([isinstance(child, Element) and child.style['display'] == 'block'
                   for child in self.node.children]):
             return "block"
-        elif self.node.children:
+        elif self.node.children or self.node.tag == "input":
             return "inline"
         else:
             return "block"
@@ -179,13 +180,15 @@ class BlockLayout:
             for word in self.split_text(tree.text):
                 self.word(tree, word)
         else:
+            if tree.tag == "input" or tree.tag == "button":
+                self.input(tree)
+                return
             self.open_tag(tree)
             for child in tree.children:
                 self.recurse(child)
             self.close_tag(tree)
 
     def word(self, node, word):
-        font = get_html_node_font(node)
         if self.only_uppercase:
             word = word.upper()
 
@@ -202,6 +205,16 @@ class BlockLayout:
         new_line = LineLayout(self.node, self, last_line, self.cursor_x)
         self.children.append(new_line)
 
+    def input(self, node):
+        line = self.children[-1]
+        previous_word = line.children[-1] if line.children else None
+        input = InputLayout(node, line, previous_word)
+        line.children.append(input)        
+
+    def should_paint(self):
+        return isinstance(self.node, Text) or \
+            (self.node.tag != "input" and self.node.tag !=  "button")
+    
     def handle_tag(self, element_node, tag_handlers):
         if element_node.tag in tag_handlers:
                 tag_handlers[element_node.tag]()

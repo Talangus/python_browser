@@ -139,3 +139,11 @@ abbr {
 code {
     font-family: Courier;
 }
+input {
+    font-size: 16px; font-weight: normal; font-style: normal;
+    background-color: lightblue;
+}
+button {
+    font-size: 16px; font-weight: normal; font-style: normal;
+    background-color: orange;
+}

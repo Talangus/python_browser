@@ -5,6 +5,7 @@ DEFAULT_FONT_FAMILY = "Arial"
 DEFAULT_WEIGHT = "normal"
 DEFAULT_STYLE= "roman"
 DEFAULT_SIZE = 12
+INPUT_WIDTH_PX = 200
 
 def get_font(size, weight, style, family):
         key = (size, weight, style, family)
