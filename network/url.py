@@ -46,6 +46,7 @@ class URL:
                         "User-Agent":"Tal_browser",
                         
                         "Accept": "*/*"}
+        self.method ="GET"
         
         self.redirect_count = 0
         self.cache_max_age = None
@@ -82,7 +83,7 @@ class URL:
 
         assert self.data_type in URL.DATA_URL_TYPES
     
-    def request(self):
+    def request(self, payload=None):
         if self.is_malformed_url:
             return " "
 
@@ -94,9 +95,14 @@ class URL:
             content = cache.load_from_cache(self)
             return content
         
+        
+        if payload:
+            self.method = "POST"
+            length = len(payload.encode("utf8"))
+            self.headers["Content-Length"] = length
+            
         s = self.get_socket()
-                
-        request = "GET {} HTTP/1.1\r\n".format(self.path)
+        request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
         request += self.get_req_headers_string()
         request += "\r\n"
 
