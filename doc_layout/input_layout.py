@@ -1,5 +1,6 @@
 from doc_layout.draw_rect import DrawRect
 from doc_layout.draw_text import DrawText
+from window_layout.draw_line import DrawLine
 from window_layout.rect import Rect
 from html_.text import Text
 from doc_layout.utils import *
@@ -19,13 +20,15 @@ class InputLayout:
         
         if self.previous:
             space = self.previous.font.measure(" ")
-            self.x = self.previous.x + self.previous.width + space 
+            self.x = self.previous.x + self.previous.width + space
+            first_child = False 
         else:
             self.x = self.parent.x
+            first_child = True
 
         self.height = self.font.metrics("linespace")
         
-        if self.passed_line_width():
+        if not first_child and self.passed_line_width():
             self.parent.split_line(self)
 
     def passed_line_width(self):
@@ -40,6 +43,10 @@ class InputLayout:
 
         if self.node.tag == "input":
             text = self.node.attributes.get("value", "")
+            if self.node.is_focused:
+                cx = self.x + self.font.measure(text)
+                cmds.append(DrawLine(
+                    cx, self.y, cx, self.y + self.height, "black", 1))
         elif self.node.tag == "button":
             if len(self.node.children) == 1 and isinstance(self.node.children[0], Text):
                 text = self.node.children[0].text

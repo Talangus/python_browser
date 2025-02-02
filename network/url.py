@@ -37,6 +37,7 @@ class URL:
             self.is_malformed_url = False
         except:
             self.is_malformed_url = True
+            self.fragment = None
             self.is_view_source = False
             return 
 

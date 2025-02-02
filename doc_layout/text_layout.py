@@ -17,12 +17,14 @@ class TextLayout:
         if self.previous:
             space = self.previous.font.measure(" ")
             self.x = self.previous.x + self.previous.width + space 
+            first_child = False
         else:
             self.x = self.parent.x
+            first_child = True
         
         self.height = self.font.metrics("linespace")
 
-        if self.passed_line_width():
+        if not first_child and self.passed_line_width():
             self.parent.split_line(self)
 
     def passed_line_width(self):

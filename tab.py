@@ -22,26 +22,31 @@ class Tab:
         self.url = None
         self.history = []
         self.forward_stack = []
+        self.focus = None
     
     def load(self, url, payload=None):
         self.history.append(url)
         self.url = url
-        self.display_list = []
         self.tab_layout.scroll = 0
         body = url.request(payload)
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
         self.title = get_html_title(self.nodes)
+        
+        self.rules = self.DEFAULT_STYLE_SHEET.copy()
+        self.rules.extend(get_css_rules(self.nodes ,url))
+        self.render()
+        self.handle_fragment()
+        
 
-        rules = self.DEFAULT_STYLE_SHEET.copy()
-        rules.extend(get_css_rules(self.nodes ,url))
-        style(self.nodes, sorted(rules, key=cascade_priority), {})
+    def render(self):
+        self.display_list = []
+        style(self.nodes, sorted(self.rules, key=cascade_priority), {})
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         paint_tree(self.document, self.display_list)
-        self.handle_fragment()
-        # print_tree(self.document)
+        # print_tree(self.document) 
         
     def draw(self, canvas, offset):
         self.tab_layout.handle_scrollbar(canvas)
@@ -54,12 +59,19 @@ class Tab:
         self.width = width
         self.height = height
         self.tab_layout.update_size()
-        self.document = DocumentLayout(self.nodes, width)
-        self.display_list = []
-        self.document.layout()
-        paint_tree(self.document, self.display_list)
+        # self.document = DocumentLayout(self.nodes, width)
+        # self.display_list = []
+        # self.document.layout()
+        # paint_tree(self.document, self.display_list)
+        self.render()
+
+    def keypress(self, char):
+        if self.focus:
+            self.focus.attributes["value"] += char
+            self.render()
 
     def click(self, x, y):
+        self.focus = None
         element = self.get_clicked_element(x, y)
         if not element:
             return
@@ -69,7 +81,17 @@ class Tab:
             self.load(url)
 
         elif element.is_tag("button"):
-            self.handle_button(element)    
+            self.handle_button(element)
+
+        elif element.is_tag("input"):
+            element.attributes["value"] = ""
+            
+            if self.focus:
+                    self.focus.is_focused = False
+            self.focus = element
+            element.is_focused = True
+
+            return self.render()    
 
     def go_back(self):
         if len(self.history) > 1:
@@ -99,7 +121,7 @@ class Tab:
             if isinstance(element, Text):
                 pass
             elif (element.tag == "a" and "href" in element.attributes) or \
-                 (element.tag == "button"):
+                 (element.tag == "button") or (element.tag == "input"):
                 return element
                
             element = element.parent 
