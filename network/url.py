@@ -37,6 +37,7 @@ class URL:
             self.is_malformed_url = False
         except:
             self.is_malformed_url = True
+            self.fragment = None
             self.is_view_source = False
             return 
 
@@ -46,6 +47,7 @@ class URL:
                         "User-Agent":"Tal_browser",
                         
                         "Accept": "*/*"}
+        self.method ="GET"
         
         self.redirect_count = 0
         self.cache_max_age = None
@@ -82,7 +84,7 @@ class URL:
 
         assert self.data_type in URL.DATA_URL_TYPES
     
-    def request(self):
+    def request(self, payload=None):
         if self.is_malformed_url:
             return " "
 
@@ -94,16 +96,30 @@ class URL:
             content = cache.load_from_cache(self)
             return content
         
+        
+        if payload:
+            self.method = "POST"
+            length = len(payload.encode("utf8"))
+            self.headers["Content-Length"] = length
+            
         s = self.get_socket()
-                
-        request = "GET {} HTTP/1.1\r\n".format(self.path)
+        request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
         request += self.get_req_headers_string()
         request += "\r\n"
+        if payload: request += payload 
+
 
         s.send(request.encode("utf8"))
         response = s.makefile("rb")
-                
-        version, status, explanation = self.parse_status_line(response)
+        line_bytes = response.readline()
+        
+        if line_bytes == b'':
+            s = socket_manager.reset_connection(self.host, self.port)
+            s.send(request.encode("utf8"))
+            response = s.makefile("rb")
+            line_bytes = response.readline()
+                        
+        version, status, explanation = self.parse_status_line(line_bytes)
         response_headers = self.parse_response_headers(response)
 
         if self.is_chunked(response_headers):
@@ -289,8 +305,7 @@ class URL:
         return "/" + path, fragment
     
     @staticmethod
-    def parse_status_line(response):
-        line_bytes = response.readline()
+    def parse_status_line(line_bytes):
         statusline = read_utf8_line(line_bytes)
         version, status, explanation = statusline.split(" ", 2)
         return version, status, explanation

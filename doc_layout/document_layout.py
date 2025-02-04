@@ -31,3 +31,6 @@ class DocumentLayout:
     
     def is_toc_list_element(self):
         return False
+    
+    def should_paint(self):
+        return True
