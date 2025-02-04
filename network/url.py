@@ -108,12 +108,12 @@ class URL:
         request += "\r\n"
         if payload: request += payload 
 
-
-        s.send(request.encode("utf8"))
-        response = s.makefile("rb")
-        line_bytes = response.readline()
-        
-        if line_bytes == b'':
+        try:
+            s.send(request.encode("utf8"))
+            response = s.makefile("rb")
+            line_bytes = response.readline()
+            if line_bytes == b'': raise Exception("empty buffer, socket closed") 
+        except Exception as e:
             s = socket_manager.reset_connection(self.host, self.port)
             s.send(request.encode("utf8"))
             response = s.makefile("rb")
