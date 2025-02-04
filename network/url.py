@@ -106,11 +106,20 @@ class URL:
         request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
         request += self.get_req_headers_string()
         request += "\r\n"
+        if payload: request += payload 
+
 
         s.send(request.encode("utf8"))
         response = s.makefile("rb")
-                
-        version, status, explanation = self.parse_status_line(response)
+        line_bytes = response.readline()
+        
+        if line_bytes == b'':
+            s = socket_manager.reset_connection(self.host, self.port)
+            s.send(request.encode("utf8"))
+            response = s.makefile("rb")
+            line_bytes = response.readline()
+                        
+        version, status, explanation = self.parse_status_line(line_bytes)
         response_headers = self.parse_response_headers(response)
 
         if self.is_chunked(response_headers):
@@ -296,8 +305,7 @@ class URL:
         return "/" + path, fragment
     
     @staticmethod
-    def parse_status_line(response):
-        line_bytes = response.readline()
+    def parse_status_line(line_bytes):
         statusline = read_utf8_line(line_bytes)
         version, status, explanation = statusline.split(" ", 2)
         return version, status, explanation

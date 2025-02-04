@@ -48,8 +48,21 @@ class SocketManager:
     def is_HTTPS_socket(self, host, port):
         socket = self.get_socket(host, port)
         return isinstance(socket, ssl.SSLSocket)
+    
+    def reset_connection(self, host, port):
+        new_socket = socket.socket(
+                family=socket.AF_INET,
+                type=socket.SOCK_STREAM,
+                proto=socket.IPPROTO_TCP
+        )
+        new_socket.connect((host, port))
 
-
+        name = generate_host_key(host, port)
+        self.sockets[name] = new_socket
+        
+        return new_socket
+            
+ 
 socket_manager = SocketManager()    
     
 
