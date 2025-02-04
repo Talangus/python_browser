@@ -150,6 +150,9 @@ class Tab:
                   if isinstance(node, Element)
                   and node.tag == "input"
                   and "name" in node.attributes]
+        
+        method = 'get' if is_get_form_method(elt) else 'post'
+
         body = ""
         for input in inputs:
             name = input.attributes["name"]
@@ -160,4 +163,8 @@ class Tab:
         body = body[1:]
         
         url = self.url.resolve(elt.attributes["action"])
-        self.load(url, body)
+        if method == "get":
+            url.set_query(body)
+            self.load(url)
+        else:
+            self.load(url, body)

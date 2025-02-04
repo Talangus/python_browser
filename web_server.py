@@ -10,6 +10,7 @@ def handle_connection(conx):
     headers = {}
     while True:
         line = req.readline().decode('utf8')
+        print(line)
         if line == '\r\n': break
         header, value = line.split(":", 1)
         headers[header.casefold()] = value.strip()
@@ -54,7 +55,7 @@ def show_comments():
     for entry in ENTRIES:
         out += "<p>" + entry + "</p>"
     
-    out += "<form action=add method=post>"
+    out += "<form action=add method=get>"
     out +=   "<p><input name=guest></p>"
     out +=   "<p><button>Sign the book!</button></p>"
     out += "</form>"
