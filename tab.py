@@ -168,3 +168,9 @@ class Tab:
             self.load(url)
         else:
             self.load(url, body)
+
+    def blur(self):
+        if self.focus:
+            self.focus.is_focused = False
+            self.render()
+        self.focus = None

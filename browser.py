@@ -49,6 +49,8 @@ class Browser:
 
     def handle_click(self, e):
         if e.y < self.chrome.bottom:
+            if self.focus == 'content':
+                self.active_tab.blur()
             self.focus = None
             self.chrome.click(e.x, e.y)
         else:
