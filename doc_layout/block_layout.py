@@ -6,6 +6,7 @@ from doc_layout.draw_rect import DrawRect
 from doc_layout.text_layout import TextLayout
 from doc_layout.line_layout import LineLayout
 from doc_layout.input_layout import InputLayout
+from doc_layout.checkbox_layout import CheckboxLayout
 from window_layout.rect import Rect
 
 
@@ -208,7 +209,10 @@ class BlockLayout:
     def input(self, node):
         line = self.children[-1]
         previous_word = line.children[-1] if line.children else None
-        input = InputLayout(node, line, previous_word)
+        if is_checkbox(node):
+            input = CheckboxLayout(node, line, previous_word)
+        else:
+            input = InputLayout(node, line, previous_word)
         line.children.append(input)        
 
     def should_paint(self):

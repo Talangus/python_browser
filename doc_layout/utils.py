@@ -44,4 +44,3 @@ def split_on_object(arr, split_obj):
         return arr[:split_index], arr[split_index:]
     else:
         return arr, []
-         

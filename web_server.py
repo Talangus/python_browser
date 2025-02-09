@@ -55,8 +55,9 @@ def show_comments():
     for entry in ENTRIES:
         out += "<p>" + entry + "</p>"
     
-    out += "<form action=add method=get>"
+    out += "<form action=add method=post>"
     out +=   "<p><input name=guest></p>"
+    out +=   "<p><input name=check type=checkbox></p>"
     out +=   "<p><button>Sign the book!</button></p>"
     out += "</form>"
 
@@ -66,6 +67,8 @@ def show_comments():
 def add_entry(params):
     if 'guest' in params:
         ENTRIES.append(params['guest'])
+    if 'check' in params:
+        ENTRIES.append(params['check'])
     return show_comments()
 
 def not_found(url, method):

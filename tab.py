@@ -89,7 +89,10 @@ class Tab:
             self.handle_form(element)
 
         elif element.is_tag("input"):
-            element.attributes["value"] = ""
+            if is_checkbox(element):
+                self.handle_checkbox_click(element)
+            else:
+                element.attributes["value"] = ""
             
             if self.focus:
                     self.focus.is_focused = False
@@ -157,7 +160,7 @@ class Tab:
         for input in inputs:
             name = input.attributes["name"]
             name = urllib.parse.quote(name)
-            value = input.attributes.get("value", "")
+            value = input.attributes.get("value", "on") if is_checkbox(input) else input.attributes.get("value", "")
             value = urllib.parse.quote(value)
             body += "&" + name + "=" + value
         body = body[1:]
@@ -168,6 +171,13 @@ class Tab:
             self.load(url)
         else:
             self.load(url, body)
+
+    @staticmethod
+    def handle_checkbox_click(element):
+        if element.has_attribute("checked", ''):
+            del element.attributes['checked']
+        else:
+            element.attributes['checked'] = ''
 
     def blur(self):
         if self.focus:
