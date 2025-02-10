@@ -20,6 +20,7 @@ class URL:
     
     def __init__(self, url):
         try:
+            self.query = None
             self.scheme, rest = URL.parse_scheme(url)
 
             if self.scheme == 'view-source':
@@ -59,6 +60,8 @@ class URL:
         if self.scheme == "http" and self.port == 80:
             port_part = ""
         url_str = self.scheme + "://" + self.host + port_part + self.path
+        if self.query:
+            url_str += "?" + self.query
         if self.fragment:
             url_str = url_str + "#" + self.fragment
         return url_str
@@ -103,17 +106,21 @@ class URL:
             self.headers["Content-Length"] = length
             
         s = self.get_socket()
-        request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
+
+        if self.query:
+            request = "{} {}?{} HTTP/1.1\r\n".format(self.method, self.path, self.query)
+        else:
+            request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
         request += self.get_req_headers_string()
         request += "\r\n"
         if payload: request += payload 
 
-
-        s.send(request.encode("utf8"))
-        response = s.makefile("rb")
-        line_bytes = response.readline()
-        
-        if line_bytes == b'':
+        try:
+            s.send(request.encode("utf8"))
+            response = s.makefile("rb")
+            line_bytes = response.readline()
+            if line_bytes == b'': raise Exception("empty buffer, socket closed") 
+        except Exception as e:
             s = socket_manager.reset_connection(self.host, self.port)
             s.send(request.encode("utf8"))
             response = s.makefile("rb")
@@ -257,7 +264,10 @@ class URL:
         else:
             return URL(self.scheme + "://" + self.host + \
                        ":" + str(self.port) + url)
-        
+
+    def set_query(self, query):
+        self.query = query
+
     @staticmethod
     def is_redirect(status):
         return status.startswith('3')

@@ -24,6 +24,7 @@ class Browser:
         )
         self.canvas.pack(fill="both", expand=1)
         self.chrome = Chrome(self)
+        self.focus = None
 
         self.window.bind("<Down>", self.handle_scrolldown)
         self.window.bind("<Up>", self.handle_scrollup)
@@ -48,6 +49,8 @@ class Browser:
 
     def handle_click(self, e):
         if e.y < self.chrome.bottom:
+            if self.focus == 'content':
+                self.active_tab.blur()
             self.focus = None
             self.chrome.click(e.x, e.y)
         else:
@@ -89,8 +92,11 @@ class Browser:
             self.draw()
 
     def handle_enter(self, e):
-        self.chrome.enter()
-        self.draw()
+        if self.chrome.enter():
+            self.draw()
+        elif self.focus == "content":
+            self.active_tab.enter()
+            self.draw()
 
     def handle_backspace(self, e):
         self.chrome.backspace()

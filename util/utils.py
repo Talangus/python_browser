@@ -94,3 +94,9 @@ def paint_tree(layout_object, display_list):
 
 def clicked_on_obj(x,y, obj):
     return obj.x <= x < obj.x + obj.width and obj.y <= y < obj.y + obj.height
+
+def is_get_form_method(element):
+    return "method" in element.attributes and element.attributes["method"] == 'get'
+
+def is_checkbox(node):
+    return node.is_tag("input") and node.has_attribute("type", "checkbox")

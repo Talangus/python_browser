@@ -167,6 +167,8 @@ class Chrome:
         if self.focus == "address bar":
             self.browser.active_tab.load(URL(self.address_bar))
             self.focus = None
+            return True
+        return False
 
     def backspace(self):
         if self.focus == "address bar" and len(self.address_bar) != 0:

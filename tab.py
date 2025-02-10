@@ -70,6 +70,11 @@ class Tab:
             self.focus.attributes["value"] += char
             self.render()
 
+    def enter(self):
+        if self.focus:
+            self.handle_form(self.focus)
+        self.focus = None
+
     def click(self, x, y):
         self.focus = None
         element = self.get_clicked_element(x, y)
@@ -81,10 +86,13 @@ class Tab:
             self.load(url)
 
         elif element.is_tag("button"):
-            self.handle_button(element)
+            self.handle_form(element)
 
         elif element.is_tag("input"):
-            element.attributes["value"] = ""
+            if is_checkbox(element):
+                self.handle_checkbox_click(element)
+            else:
+                element.attributes["value"] = ""
             
             if self.focus:
                     self.focus.is_focused = False
@@ -134,7 +142,7 @@ class Tab:
         
         self.tab_layout.scroll_to_hash(self.url.fragment)
         
-    def handle_button(self, element):
+    def handle_form(self, element):
         while element:
             if element.tag == "form" and "action" in element.attributes:
                 return self.submit_form(element)
@@ -145,14 +153,34 @@ class Tab:
                   if isinstance(node, Element)
                   and node.tag == "input"
                   and "name" in node.attributes]
+        
+        method = 'get' if is_get_form_method(elt) else 'post'
+
         body = ""
         for input in inputs:
             name = input.attributes["name"]
             name = urllib.parse.quote(name)
-            value = input.attributes.get("value", "")
+            value = input.attributes.get("value", "on") if is_checkbox(input) else input.attributes.get("value", "")
             value = urllib.parse.quote(value)
             body += "&" + name + "=" + value
         body = body[1:]
         
         url = self.url.resolve(elt.attributes["action"])
-        self.load(url, body)
+        if method == "get":
+            url.set_query(body)
+            self.load(url)
+        else:
+            self.load(url, body)
+
+    @staticmethod
+    def handle_checkbox_click(element):
+        if element.has_attribute("checked", ''):
+            del element.attributes['checked']
+        else:
+            element.attributes['checked'] = ''
+
+    def blur(self):
+        if self.focus:
+            self.focus.is_focused = False
+            self.render()
+        self.focus = None
