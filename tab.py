@@ -6,12 +6,15 @@ from html_.text import Text
 from html_.element import Element
 from css.css_parser import style, CSSParser
 from css.utils import get_css_rules
+from js.js_context import JSContext
+from js.utils import *
 from util.utils import *
 
 import urllib
+import dukpy
 
 class Tab:
-    DEFAULT_STYLE_SHEET = CSSParser(open("./css/browser.css").read()).parse()
+    DEFAULT_STYLE_SHEET = CSSParser(open("css/browser.css").read()).parse()
     
     def __init__(self, width, height):
         self.width = width
@@ -23,6 +26,7 @@ class Tab:
         self.history = []
         self.forward_stack = []
         self.focus = None
+        self.js = JSContext(self)
     
     def load(self, url, payload=None):
         self.history.append(url)
@@ -34,11 +38,22 @@ class Tab:
         self.nodes = html_decode(nodes)
         self.title = get_html_title(self.nodes)
         
+        script_urls = get_external_scripts(self.nodes)
+        self.run_scripts(script_urls)
         self.rules = self.DEFAULT_STYLE_SHEET.copy()
         self.rules.extend(get_css_rules(self.nodes ,url))
+        
         self.render()
         self.handle_fragment()
         
+    def run_scripts(self, script_urls):
+        for script in script_urls:
+            script_url = self.url.resolve(script)
+            try:
+                body = script_url.request()
+                self.js.run(body)
+            except:
+                continue
 
     def render(self):
         self.display_list = []
@@ -59,14 +74,11 @@ class Tab:
         self.width = width
         self.height = height
         self.tab_layout.update_size()
-        # self.document = DocumentLayout(self.nodes, width)
-        # self.display_list = []
-        # self.document.layout()
-        # paint_tree(self.document, self.display_list)
         self.render()
 
     def keypress(self, char):
         if self.focus:
+            self.js.dispatch_event("keydown", self.focus)
             self.focus.attributes["value"] += char
             self.render()
 
@@ -82,13 +94,16 @@ class Tab:
             return
         
         if element.is_tag("a"):
+            self.js.dispatch_event("click", element)
             url = self.url.resolve(element.attributes["href"])
             self.load(url)
 
         elif element.is_tag("button"):
+            self.js.dispatch_event("click", element)
             self.handle_form(element)
 
         elif element.is_tag("input"):
+            self.js.dispatch_event("click", element)
             if is_checkbox(element):
                 self.handle_checkbox_click(element)
             else:
@@ -149,6 +164,7 @@ class Tab:
             element = element.parent
 
     def submit_form(self, elt):
+        self.js.dispatch_event("submit", elt)
         inputs = [node for node in tree_to_list(elt, [])
                   if isinstance(node, Element)
                   and node.tag == "input"

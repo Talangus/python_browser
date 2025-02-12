@@ -6,11 +6,11 @@ def handle_connection(conx):
     req = conx.makefile("rwb")
     reqline = req.readline().decode('utf8')
     method, url, version = reqline.split(" ", 2)
+    print(method, url)
     assert method in ["GET", "POST"]
     headers = {}
     while True:
         line = req.readline().decode('utf8')
-        print(line)
         if line == '\r\n': break
         header, value = line.split(":", 1)
         headers[header.casefold()] = value.strip()
@@ -32,6 +32,8 @@ def handle_connection(conx):
 def do_request(method, url, headers, body):
     if method == "GET" and url == "/":
         return "200 OK", show_comments()
+    elif method == "GET" and url == "/test.js":
+        return "200 OK", open("test.js").read()
     elif method == "POST" and url == "/add":
         params = form_decode(body)
         return "200 OK", add_entry(params)
@@ -60,6 +62,7 @@ def show_comments():
     out +=   "<p><input name=check type=checkbox></p>"
     out +=   "<p><button>Sign the book!</button></p>"
     out += "</form>"
+    out += "<script src='test.js'></script>"
 
     return out
     
