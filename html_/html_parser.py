@@ -121,7 +121,6 @@ class HTMLParser:
         tag = tag.casefold()
         attributes = {}
         if len(rest) != 0:
-            # attr_pattern = re.compile(r'(\w+)\s*=\s*(".*?"|\'.*?\'|\S+)')
             attr_pattern = re.compile(r'(\w+)(?:\s*=\s*(".*?"|\'.*?\'|\S+))?')
             for match in attr_pattern.findall(rest[0]):
                 key, value = match
