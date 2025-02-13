@@ -78,7 +78,7 @@ class Tab:
 
     def keypress(self, char):
         if self.focus:
-            self.js.dispatch_event("keydown", self.focus)
+            if self.js.dispatch_event("keydown", self.focus): return
             self.focus.attributes["value"] += char
             self.render()
 
@@ -94,16 +94,16 @@ class Tab:
             return
         
         if element.is_tag("a"):
-            self.js.dispatch_event("click", element)
+            if self.js.dispatch_event("click", element): return
             url = self.url.resolve(element.attributes["href"])
             self.load(url)
 
         elif element.is_tag("button"):
-            self.js.dispatch_event("click", element)
+            if self.js.dispatch_event("click", element): return
             self.handle_form(element)
 
         elif element.is_tag("input"):
-            self.js.dispatch_event("click", element)
+            if self.js.dispatch_event("click", element): return
             if is_checkbox(element):
                 self.handle_checkbox_click(element)
             else:
@@ -164,7 +164,7 @@ class Tab:
             element = element.parent
 
     def submit_form(self, elt):
-        self.js.dispatch_event("submit", elt)
+        if self.js.dispatch_event("submit", elt): return
         inputs = [node for node in tree_to_list(elt, [])
                   if isinstance(node, Element)
                   and node.tag == "input"

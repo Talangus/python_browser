@@ -34,6 +34,8 @@ def do_request(method, url, headers, body):
         return "200 OK", show_comments()
     elif method == "GET" and url == "/test.js":
         return "200 OK", open("test.js").read()
+    elif method == "GET" and url == "/comment.css":
+        return "200 OK", open("comment.css").read()
     elif method == "POST" and url == "/add":
         params = form_decode(body)
         return "200 OK", add_entry(params)
@@ -62,7 +64,9 @@ def show_comments():
     out +=   "<p><input name=check type=checkbox></p>"
     out +=   "<p><button>Sign the book!</button></p>"
     out += "</form>"
+    out += "<strong></strong>"
     out += "<script src='test.js'></script>"
+    out += "<link rel='stylesheet' href='comment.css'>"
 
     return out
     
