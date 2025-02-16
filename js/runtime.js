@@ -31,6 +31,12 @@ Object.defineProperty(Node.prototype, 'innerHTML', {
         call_python("innerHTML_set", this.handle, s.toString());
     }
 });
+Object.defineProperty(Node.prototype, 'children', {
+    get: function() {
+        var handles = call_python("children_get", this.handle);
+        return handles.map(function(h) { return new Node(h) });
+    }
+});
 
 function Event(type) {
     this.type = type

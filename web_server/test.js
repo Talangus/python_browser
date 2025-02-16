@@ -20,3 +20,4 @@ var form = document.querySelectorAll("form")[0];
 form.addEventListener("submit", function(e) {
     if (!allow_submit) e.preventDefault();
 });
+console.log(document.querySelectorAll('form')[0].children[0].children[0].getAttribute('name'))

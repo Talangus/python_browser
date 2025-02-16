@@ -1,5 +1,6 @@
 from css.css_parser import CSSParser
 from html_.html_parser import HTMLParser
+from html_.element import Element
 from util.utils import *
 import dukpy
 
@@ -20,6 +21,8 @@ class JSContext:
             self.getAttribute)
         self.interp.export_function("innerHTML_set",
             self.innerHTML_set)
+        self.interp.export_function("children_get",
+            self.children_get)
         
         self.interp.evaljs(RUNTIME_JS)
 
@@ -65,3 +68,11 @@ class JSContext:
         for child in elt.children:
             child.parent = elt
         self.tab.render()
+
+    def children_get(self, handle):
+        elt = self.handle_to_node[handle]
+        element_children = []
+        for child in elt.children:
+            if isinstance(child, Element):
+                element_children.append(self.get_handle(child))
+        return element_children
