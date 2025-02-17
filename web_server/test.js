@@ -21,3 +21,10 @@ form.addEventListener("submit", function(e) {
     if (!allow_submit) e.preventDefault();
 });
 console.log(document.querySelectorAll('form')[0].children[0].children[0].getAttribute('name'))
+var p = document.createElement("p")
+p.innerHTML = "test insert js"
+form.appendChild(p)
+
+var div = document.createElement('div')
+div.innerHTML = 'test insert before'
+p.insertBefore(div)

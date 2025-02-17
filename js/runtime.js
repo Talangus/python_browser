@@ -1,8 +1,15 @@
 console = { log: function(x) { call_python("log", x); } }
-document = { querySelectorAll: function(s) {
-    var handles = call_python("querySelectorAll", s);
-    return handles.map(function(h) { return new Node(h) });
-}}
+document = { 
+    querySelectorAll: function(s) {
+        var handles = call_python("querySelectorAll", s);
+        return handles.map(function(h) { return new Node(h) });
+    },
+    createElement: function(tagName){
+        var handle = call_python("create_element", tagName)
+        return new Node(handle)
+    }    
+
+}
 
 LISTENERS = {}
 function Node(handle) { this.handle = handle; }
@@ -25,6 +32,12 @@ Node.prototype.dispatchEvent = function(evt) {
     }
 
     return evt.do_default;
+}
+Node.prototype.appendChild = function(node) {
+    call_python("append_child", this.handle, node.handle)
+}
+Node.prototype.insertBefore = function(node) {
+    call_python("insert_before", this.handle, node.handle)
 }
 Object.defineProperty(Node.prototype, 'innerHTML', {
     set: function(s) {

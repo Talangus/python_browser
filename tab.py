@@ -38,10 +38,10 @@ class Tab:
         self.nodes = html_decode(nodes)
         self.title = get_html_title(self.nodes)
         
-        script_urls = get_external_scripts(self.nodes)
-        self.run_scripts(script_urls)
         self.rules = self.DEFAULT_STYLE_SHEET.copy()
         self.rules.extend(get_css_rules(self.nodes ,url))
+        script_urls = get_external_scripts(self.nodes)
+        self.run_scripts(script_urls)        
         
         self.render()
         self.handle_fragment()

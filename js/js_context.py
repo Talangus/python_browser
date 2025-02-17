@@ -13,7 +13,11 @@ class JSContext:
         self.interp = dukpy.JSInterpreter()
         self.node_to_handle = {}
         self.handle_to_node = {}
+        self.export_functions()
+                
+        self.interp.evaljs(RUNTIME_JS)
 
+    def export_functions(self):
         self.interp.export_function("log", print)
         self.interp.export_function("querySelectorAll",
             self.querySelectorAll)
@@ -23,8 +27,14 @@ class JSContext:
             self.innerHTML_set)
         self.interp.export_function("children_get",
             self.children_get)
-        
-        self.interp.evaljs(RUNTIME_JS)
+        self.interp.export_function("children_get",
+            self.children_get)
+        self.interp.export_function("create_element",
+            self.create_element)
+        self.interp.export_function("append_child",
+            self.append_child)
+        self.interp.export_function("insert_before",
+            self.insert_before)
 
     def run(self, code):
         try:
@@ -76,3 +86,22 @@ class JSContext:
             if isinstance(child, Element):
                 element_children.append(self.get_handle(child))
         return element_children
+    
+    def create_element(self, local_name):
+        element = Element(local_name, {}, None)
+        return self.get_handle(element)
+    
+    def append_child(self, parent_handle, child_handle):
+        parent = self.handle_to_node[parent_handle]
+        child = self.handle_to_node[child_handle]
+        child.parent = parent
+        parent.children.append(child)
+        self.tab.render()
+
+    def insert_before(self, node_handle, sibling_handle):
+        node = self.handle_to_node[node_handle]
+        sibling = self.handle_to_node[sibling_handle]
+        if node.parent:
+            node_index = node.parent.children.index(node)
+            node.parent.children.insert(node_index, sibling)
+            self.tab.render()
