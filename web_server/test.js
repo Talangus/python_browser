@@ -27,4 +27,4 @@ form.appendChild(p)
 
 var div = document.createElement('div')
 div.innerHTML = 'test insert before'
-p.insertBefore(div)
+form.insertBefore(div, p)

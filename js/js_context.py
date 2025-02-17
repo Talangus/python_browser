@@ -98,10 +98,22 @@ class JSContext:
         parent.children.append(child)
         self.tab.render()
 
-    def insert_before(self, node_handle, sibling_handle):
-        node = self.handle_to_node[node_handle]
-        sibling = self.handle_to_node[sibling_handle]
-        if node.parent:
-            node_index = node.parent.children.index(node)
-            node.parent.children.insert(node_index, sibling)
+    def insert_before(self,parent_handle, new_handle, refrence_handle):
+        parent = self.handle_to_node[parent_handle]
+        new_node = self.handle_to_node[new_handle]
+        refrence_node = self.handle_to_node[refrence_handle]
+        refrence_index = parent.children.index(refrence_node)
+        parent.children.insert(refrence_index, new_node)
+        self.tab.render()
+
+    def remove_child(self, parent_handle, child_handle):
+        parent = self.handle_to_node[parent_handle]
+        child = self.handle_to_node[child_handle]
+        child_index = parent.children.index(child)
+        if child_index:
+            child.parent = None
+            del parent.children[child_index]
             self.tab.render()
+            return child_handle
+        
+        return None

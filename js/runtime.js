@@ -36,8 +36,8 @@ Node.prototype.dispatchEvent = function(evt) {
 Node.prototype.appendChild = function(node) {
     call_python("append_child", this.handle, node.handle)
 }
-Node.prototype.insertBefore = function(node) {
-    call_python("insert_before", this.handle, node.handle)
+Node.prototype.insertBefore = function(newNode, referenceNode) {
+    call_python("insert_before", this.handle, newNode.handle, referenceNode.handle)
 }
 Object.defineProperty(Node.prototype, 'innerHTML', {
     set: function(s) {
