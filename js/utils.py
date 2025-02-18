@@ -12,4 +12,10 @@ def get_external_scripts(tree):
 
     return script_urls    
 
-    
+def is_detached(node):
+    parent = node.parent
+    while parent is not None:
+        node = parent
+        parent = node.parent
+
+    return not node.is_tag('html')

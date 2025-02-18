@@ -56,8 +56,10 @@ def form_decode(body):
 
 def show_comments():
     out = "<!doctype html>"
+    out +='<p>First line</p>'
     for entry in ENTRIES:
         out += "<p>" + entry + "</p>"
+    
     
     out += "<form action=add method=post>"
     out +=   "<p><input name=guest></p>"
@@ -65,8 +67,11 @@ def show_comments():
     out +=   "<p><button>Sign the book!</button></p>"
     out += "</form>"
     out += "<strong></strong>"
+    out +='<p>last line</p>'
+    out += "<div id=tal></div>"
     out += "<script src='test.js'></script>"
     out += "<link rel='stylesheet' href='comment.css'>"
+    
 
     return out
     

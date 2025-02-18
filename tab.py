@@ -40,6 +40,8 @@ class Tab:
         
         self.rules = self.DEFAULT_STYLE_SHEET.copy()
         self.rules.extend(get_css_rules(self.nodes ,url))
+        
+        self.js.start_runtime_env()
         script_urls = get_external_scripts(self.nodes)
         self.run_scripts(script_urls)        
         

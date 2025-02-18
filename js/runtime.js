@@ -16,6 +16,9 @@ function Node(handle) { this.handle = handle; }
 Node.prototype.getAttribute = function(attr) {
     return call_python("getAttribute", this.handle, attr);
 }
+Node.prototype.setAttribute = function(key, value) {
+    return call_python("setAttribute", this.handle, key, value);
+}
 Node.prototype.addEventListener = function(type, listener) {
     if (!LISTENERS[this.handle]) LISTENERS[this.handle] = {};
     var dict = LISTENERS[this.handle];
@@ -38,6 +41,12 @@ Node.prototype.appendChild = function(node) {
 }
 Node.prototype.insertBefore = function(newNode, referenceNode) {
     call_python("insert_before", this.handle, newNode.handle, referenceNode.handle)
+}
+Node.prototype.removeChild = function(childNode) {
+    removed_handle = call_python("remove_child", this.handle, childNode.handle)
+    if (removed_handle){
+        return childNode
+    }
 }
 Object.defineProperty(Node.prototype, 'innerHTML', {
     set: function(s) {
