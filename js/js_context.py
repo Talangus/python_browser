@@ -84,9 +84,21 @@ class JSContext:
 
     def dispatch_event(self, type, elt):
         handle = self.node_to_handle.get(elt, -1)
-        do_default = self.interp.evaljs(
+        first_event = self.interp.evaljs(
             EVENT_DISPATCH_JS, type=type, handle=handle)
-        return not do_default
+        self.propagate_event(type, elt.parent)
+        
+        return not first_event.do_default
+
+    def propagate_event(self, type, elt):
+        propagate = True
+        while elt and propagate:
+            handle = self.node_to_handle.get(elt, -1)
+            event = self.interp.evaljs(
+                EVENT_DISPATCH_JS, type=type, handle=handle)
+            propagate = event.propogate
+            elt = elt.parent
+
 
     def innerHTML_set(self, handle, s):
         doc = HTMLParser("<html><body>" + s + "</body></html>").parse()

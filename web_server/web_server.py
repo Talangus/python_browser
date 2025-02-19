@@ -34,6 +34,10 @@ def do_request(method, url, headers, body):
         return "200 OK", show_comments()
     elif method == "GET" and url == "/test.js":
         return "200 OK", open("test.js").read()
+    elif method == "GET" and url == "/bubble.html":
+        return "200 OK", open("bubble.html").read()
+    elif method == "GET" and url == "/bubble.js":
+        return "200 OK", open("bubble.js").read()
     elif method == "GET" and url == "/comment.css":
         return "200 OK", open("comment.css").read()
     elif method == "POST" and url == "/add":

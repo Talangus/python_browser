@@ -34,7 +34,7 @@ Node.prototype.dispatchEvent = function(evt) {
         list[i].call(this, evt);
     }
 
-    return evt.do_default;
+    return evt;
 }
 Node.prototype.appendChild = function(node) {
     call_python("append_child", this.handle, node.handle)
@@ -63,8 +63,12 @@ Object.defineProperty(Node.prototype, 'children', {
 function Event(type) {
     this.type = type
     this.do_default = true;
+    this.propogate = true
 }
-
 Event.prototype.preventDefault = function() {
     this.do_default = false;
+}
+
+Event.prototype.stopPropagation = function() {
+    this.propogate = false;
 }
