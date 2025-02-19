@@ -38,9 +38,14 @@ div2.appendChild(div1_1);
 div1.appendChild(div2);
 div1.appendChild(div3);
 
-console.log("calling query selector")
-body = document.querySelectorAll['body']
-// document.children[1].appendChild(div1);
+var body = document.querySelectorAll('body')[0] //no call for python?
+body.appendChild(div1)
 
-// Step 2: Use child1 directly as a reference
-// console.log(child1);
+console.log(child1.getAttribute("color"));
+console.log(grandchild1.constructor.name)
+
+container.innerHTML = '<div id=newdiv>texy</div>'
+console.log(newdiv.constructor.name)
+
+newdiv.setAttribute("id", "texy2")
+console.log(newdiv.constructor.name)

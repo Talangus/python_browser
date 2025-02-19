@@ -138,7 +138,7 @@ class JSContext:
         parent = self.handle_to_node[parent_handle]
         child = self.handle_to_node[child_handle]
         child_index = parent.children.index(child)
-        if child_index:
+        if child_index != -1:
             del parent.children[child_index]
             id_vars = self.get_html_id_vars(child, True)
             self.remove_html_id_vars(id_vars)
@@ -172,7 +172,7 @@ class JSContext:
         
     def remove_html_id_vars(self, id_vars):
         vars_js = ""
-        for id, _ in id_vars:
+        for id in id_vars:
             vars_js += f'delete {id};'
 
         self.interp.evaljs(vars_js)
