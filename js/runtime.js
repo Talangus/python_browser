@@ -33,7 +33,6 @@ Node.prototype.dispatchEvent = function(evt) {
     for (var i = 0; i < list.length; i++) {
         list[i].call(this, evt);
     }
-
     return evt;
 }
 Node.prototype.appendChild = function(node) {

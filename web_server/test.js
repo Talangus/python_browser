@@ -48,4 +48,4 @@ container.innerHTML = '<div id=newdiv>texy</div>'
 console.log(newdiv.constructor.name)
 
 newdiv.setAttribute("id", "texy2")
-console.log(newdiv.constructor.name)
+console.log(texy2.constructor.name)

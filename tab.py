@@ -91,30 +91,35 @@ class Tab:
 
     def click(self, x, y):
         self.focus = None
-        element = self.get_clicked_element(x, y)
-        if not element:
-            return
+        clicked_elements = self.get_clicked_elements(x, y)
+        inner_element = clicked_elements['inner']
+        interactive_element = clicked_elements['interactive']
         
-        if element.is_tag("a"):
-            if self.js.dispatch_event("click", element): return
-            url = self.url.resolve(element.attributes["href"])
+        if not inner_element:
+            return
+        if self.js.dispatch_event("click", inner_element): return
+        if not interactive_element: return
+
+        if interactive_element.is_tag("a"):
+            # if self.js.dispatch_event("click", element): return
+            url = self.url.resolve(interactive_element.attributes["href"])
             self.load(url)
 
-        elif element.is_tag("button"):
-            if self.js.dispatch_event("click", element): return
-            self.handle_form(element)
+        elif interactive_element.is_tag("button"):
+            # if self.js.dispatch_event("click", element): return
+            self.handle_form(interactive_element)
 
-        elif element.is_tag("input"):
-            if self.js.dispatch_event("click", element): return
-            if is_checkbox(element):
-                self.handle_checkbox_click(element)
+        elif interactive_element.is_tag("input"):
+            # if self.js.dispatch_event("click", element): return
+            if is_checkbox(interactive_element):
+                self.handle_checkbox_click(interactive_element)
             else:
-                element.attributes["value"] = ""
+                interactive_element.attributes["value"] = ""
             
             if self.focus:
                     self.focus.is_focused = False
-            self.focus = element
-            element.is_focused = True
+            self.focus = interactive_element
+            interactive_element.is_focused = True
 
             return self.render()    
 
@@ -130,29 +135,28 @@ class Tab:
             forward_page = self.forward_stack.pop()
             self.load(forward_page)
 
-    def get_clicked_url(self, x, y):
-        element = self.get_clicked_element(x, y)
-        if element.is_tag("a"):
-            url = self.url.resolve(element.attributes["href"])
-            return url
-
-    def get_clicked_element(self, x, y):
+    def get_clicked_elements(self, x, y):
         y += self.tab_layout.scroll
         objs = [obj for obj in tree_to_list(self.document, []) if clicked_on_obj(x, y, obj)]
         if not objs: return
         element = objs[-1].node
-        
-        while element:
-            if isinstance(element, Text):
-                pass
-            elif (element.tag == "a" and "href" in element.attributes) or \
-                 (element.tag == "button") or (element.tag == "input"):
-                return element
-               
+        clicked_elements = {}
+
+        while element and isinstance(element, Text):
             element = element.parent 
-        
-        return None
-    
+        clicked_elements['inner'] = element
+
+        while element and not self.is_interactive_element(element):
+            element = element.parent 
+        clicked_elements["interactive"] = element
+
+        return clicked_elements
+
+    @staticmethod
+    def is_interactive_element(element):
+        return (element.tag == "a" and "href" in element.attributes) or \
+            (element.tag == "button") or (element.tag == "input")
+
     def handle_fragment(self):
         if not self.url.fragment:
             return
