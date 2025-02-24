@@ -101,16 +101,13 @@ class Tab:
         if not interactive_element: return
 
         if interactive_element.is_tag("a"):
-            # if self.js.dispatch_event("click", element): return
             url = self.url.resolve(interactive_element.attributes["href"])
             self.load(url)
 
         elif interactive_element.is_tag("button"):
-            # if self.js.dispatch_event("click", element): return
             self.handle_form(interactive_element)
 
         elif interactive_element.is_tag("input"):
-            # if self.js.dispatch_event("click", element): return
             if is_checkbox(interactive_element):
                 self.handle_checkbox_click(interactive_element)
             else:
