@@ -7,6 +7,21 @@ import dukpy
 
 RUNTIME_JS = open("js/runtime.js").read()
 EVENT_DISPATCH_JS = "new Node(dukpy.handle).dispatchEvent(new Event(dukpy.type))"
+VOID_ELEMENTS = [
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "source",
+    "track",
+    "wbr"
+]
 
 class JSContext:
     def __init__(self, tab):
@@ -30,8 +45,10 @@ class JSContext:
             self.setAttribute)
         self.interp.export_function("innerHTML_set",
             self.innerHTML_set)
-        self.interp.export_function("children_get",
-            self.children_get)
+        self.interp.export_function("innerHTML_get",
+            self.innerHTML_get)
+        self.interp.export_function("outerHTML_get",
+            self.outerHTML_get)
         self.interp.export_function("children_get",
             self.children_get)
         self.interp.export_function("create_element",
@@ -115,6 +132,19 @@ class JSContext:
         
         self.tab.render()
 
+    def innerHTML_get(self, handle):
+        elt = self.handle_to_node[handle]
+        output = ''
+        for child in elt.children:
+            output += self.serialize_element(child)
+        return output
+
+    def outerHTML_get(self, handle):
+        elt = self.handle_to_node[handle]
+        res = self.serialize_element(elt)
+        return res
+        
+
     def children_get(self, handle):
         elt = self.handle_to_node[handle]
         element_children = []
@@ -190,4 +220,21 @@ class JSContext:
 
         self.interp.evaljs(vars_js)
 
-    
+    def serialize_element(self, element):
+        if isinstance(element, Element):
+            output = f'<{element.tag}'
+            for key in element.attributes:
+                output+= f' {key}="{element.attributes[key]}"'
+            output +='>'
+
+            for child in element.children:
+                output += self.serialize_element(child)
+            
+            if element.tag not in VOID_ELEMENTS:
+                output +=f'</{element.tag}>'
+
+            return output
+        
+        else:
+            return element.text
+

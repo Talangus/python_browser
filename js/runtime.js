@@ -47,9 +47,17 @@ Node.prototype.removeChild = function(childNode) {
         return childNode
     }
 }
+Object.defineProperty(Node.prototype, 'outerHTML', {
+    get: function() {
+        return call_python("outerHTML_get", this.handle);
+    }
+});
 Object.defineProperty(Node.prototype, 'innerHTML', {
     set: function(s) {
         call_python("innerHTML_set", this.handle, s.toString());
+    },
+    get: function() {
+        return call_python("innerHTML_get", this.handle);
     }
 });
 Object.defineProperty(Node.prototype, 'children', {

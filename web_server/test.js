@@ -49,3 +49,5 @@ console.log(newdiv.constructor.name)
 
 newdiv.setAttribute("id", "texy2")
 console.log(texy2.constructor.name)
+
+console.log(body.innerHTML)
