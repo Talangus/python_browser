@@ -34,6 +34,10 @@ def do_request(method, url, headers, body):
         return "200 OK", show_comments()
     elif method == "GET" and url == "/test.js":
         return "200 OK", open("test.js").read()
+    elif method == "GET" and url == "/bubble.html":
+        return "200 OK", open("bubble.html").read()
+    elif method == "GET" and url == "/bubble.js":
+        return "200 OK", open("bubble.js").read()
     elif method == "GET" and url == "/comment.css":
         return "200 OK", open("comment.css").read()
     elif method == "POST" and url == "/add":
@@ -56,8 +60,10 @@ def form_decode(body):
 
 def show_comments():
     out = "<!doctype html>"
+    out +='<p>First line</p>'
     for entry in ENTRIES:
         out += "<p>" + entry + "</p>"
+    
     
     out += "<form action=add method=post>"
     out +=   "<p><input name=guest></p>"
@@ -65,8 +71,11 @@ def show_comments():
     out +=   "<p><button>Sign the book!</button></p>"
     out += "</form>"
     out += "<strong></strong>"
+    out +='<p>last line</p>'
+    out += "<div id=tal></div>"
     out += "<script src='test.js'></script>"
     out += "<link rel='stylesheet' href='comment.css'>"
+    
 
     return out
     
