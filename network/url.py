@@ -5,7 +5,7 @@ from .socket_manager import socket_manager
 from .cache import cache
 from util.utils import *
 
-
+COOKIE_JAR = {}
 
 class URL:
     DEFAULT_FILE_PATH="file:///Users/li016390/Desktop/challenges/browser/pages/test.html"
@@ -128,6 +128,10 @@ class URL:
                         
         version, status, explanation = self.parse_status_line(line_bytes)
         response_headers = self.parse_response_headers(response)
+        
+        if "set-cookie" in response_headers:
+            cookie = response_headers["set-cookie"]
+            COOKIE_JAR[self.host] = cookie
 
         if self.is_chunked(response_headers):
             content = self.read_chunked_response(response)
@@ -176,6 +180,11 @@ class URL:
         headers = ""
         for key,value in self.headers.items():
             headers += "{}: {}\r\n".format(key, value)
+
+        if self.host in COOKIE_JAR:
+            cookie = COOKIE_JAR[self.host]
+            headers += "Cookie: {}\r\n".format(cookie)
+        
         return headers
     
     def parse_response_headers(self, response):
