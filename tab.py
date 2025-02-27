@@ -30,9 +30,9 @@ class Tab:
     
     def load(self, url, payload=None):
         self.history.append(url)
-        self.url = url
         self.tab_layout.scroll = 0
-        body = url.request(payload)
+        body = url.request(self.url, payload)
+        self.url = url
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
@@ -52,7 +52,7 @@ class Tab:
         for script in script_urls:
             script_url = self.url.resolve(script)
             try:
-                body = script_url.request()
+                body = script_url.request(self.url)
                 self.js.run(body)
             except:
                 continue

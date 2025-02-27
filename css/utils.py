@@ -25,7 +25,7 @@ def get_external_css_rules(node_list, url):
     for link in links:
         style_url = url.resolve(link)
         try:
-            body = style_url.request()
+            body = style_url.request(url)
             new_rules = CSSParser(body).parse()
             rules.extend(new_rules)
         except:

@@ -87,7 +87,7 @@ class URL:
 
         assert self.data_type in URL.DATA_URL_TYPES
     
-    def request(self, payload=None):
+    def request(self, referrer, payload=None):
         if self.is_malformed_url:
             return " "
 
@@ -111,7 +111,7 @@ class URL:
             request = "{} {}?{} HTTP/1.1\r\n".format(self.method, self.path, self.query)
         else:
             request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
-        request += self.get_req_headers_string()
+        request += self.get_req_headers_string(referrer)
         request += "\r\n"
         if payload: request += payload 
 
@@ -131,7 +131,16 @@ class URL:
         
         if "set-cookie" in response_headers:
             cookie = response_headers["set-cookie"]
-            COOKIE_JAR[self.host] = cookie
+            params = {}
+            if ";" in cookie:
+                cookie, rest = cookie.split(";", 1)
+                for param in rest.split(";"):
+                    if '=' in param:
+                        param, value = param.split("=", 1)
+                    else:
+                        value = "true"
+                    params[param.strip().casefold()] = value.casefold()
+            COOKIE_JAR[self.host] = (cookie, params)
 
         if self.is_chunked(response_headers):
             content = self.read_chunked_response(response)
@@ -176,14 +185,19 @@ class URL:
 
         return socket
     
-    def get_req_headers_string(self):
+    def get_req_headers_string(self, referrer):
         headers = ""
         for key,value in self.headers.items():
             headers += "{}: {}\r\n".format(key, value)
 
         if self.host in COOKIE_JAR:
-            cookie = COOKIE_JAR[self.host]
-            headers += "Cookie: {}\r\n".format(cookie)
+            cookie, params = COOKIE_JAR[self.host]
+            allow_cookie = True
+            if referrer and params.get("samesite", "none") == "lax":
+                if self.method != "GET":
+                    allow_cookie = self.host == referrer.host
+            if allow_cookie:
+                headers += "Cookie: {}\r\n".format(cookie)
         
         return headers
     
