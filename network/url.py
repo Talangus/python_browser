@@ -160,7 +160,7 @@ class URL:
         if self.should_cache_response(response_headers):
             cache.save_to_cache(self, content)
         
-        return content
+        return response_headers, content
 
     def need_socket(self):
         return self.scheme in ["http", "https"]
@@ -184,6 +184,9 @@ class URL:
             socket = socket_manager.upgrade_to_https(self.host, self.port)
 
         return socket
+    
+    def origin(self):
+        return self.scheme + "://" + self.host + ":" + str(self.port)
     
     def get_req_headers_string(self, referrer):
         headers = ""
@@ -217,8 +220,9 @@ class URL:
 
         new_url = URL(full_address)
         new_url.increase_redirect_count(self.redirect_count)
+        _, content = new_url.request()
 
-        return new_url.request()
+        return content
 
     def add_host_if_needed(self,url):
         if self.is_relative_url(url):

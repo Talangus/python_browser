@@ -4,7 +4,7 @@ var allow_submit = true;
 
 function lengthCheck() {
     var value = this.getAttribute("value");
-    allow_submit = value.length <= 10;
+    allow_submit = value.length <= 100;
     if (!allow_submit) {
         strong.innerHTML = "Comment too long!";
     }

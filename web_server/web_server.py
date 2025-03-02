@@ -1,13 +1,16 @@
 import socket
 import urllib.parse
 import random
+import html
+
 
 ENTRIES = [ ('Pavel was here', "Pavel") ]
 SESSIONS = {}
 LOGINS = {
     "crashoverride": "0cool",
     "cerealkiller": "emmanuel",
-    "tal":"1234"
+    "tal":"1234",
+    "":""
 }
 
 
@@ -45,6 +48,9 @@ def handle_connection(conx):
         template = "Set-Cookie: token={}; SameSite=Lax\r\n"
         response += template.format(token)
     
+    csp = "default-src http://localhost:8000"
+    response += "Content-Security-Policy: {}\r\n".format(csp)
+
     response += "\r\n" + body
     conx.send(response.encode('utf8'))
     conx.close()
@@ -81,6 +87,7 @@ def login_form(session):
     body +=   "<input name=nonce type=hidden value=" + nonce + ">"
     body += "<p><button>Log in</button></p>"
     body += "</form>"
+    body += "<strong></strong>"
     return body 
     
 def do_login(session, params):
@@ -110,8 +117,8 @@ def show_comments(session):
     out = "<!doctype html>"
     out +='<p>First line</p>'
     for entry, who in ENTRIES:
-        out += "<p>" + entry + "\n"
-        out += "<i>by " + who + "</i></p>"
+        out += "<p>" + html.escape(entry) + "\n"
+        out += "<i>by " + html.escape(who) + "</i></p>"
     
     
     if "user" in session:
@@ -125,9 +132,11 @@ def show_comments(session):
         out += "</form>"
         out += "<script src='test.js'></script>"
         out += "<link rel='stylesheet' href='comment.css'>"
+        out += "<strong></strong>"
     else:
         out += "<a href=/login>Sign in to write in the guest book</a>"
 
+    out += "<script src=https://example.com/evil.js></script>" #csp test
     return out
     
 

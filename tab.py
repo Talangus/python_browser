@@ -8,6 +8,7 @@ from css.css_parser import style, CSSParser
 from css.utils import get_css_rules
 from js.js_context import JSContext
 from js.utils import *
+from network.url import URL
 from util.utils import *
 
 import urllib
@@ -31,15 +32,16 @@ class Tab:
     def load(self, url, payload=None):
         self.history.append(url)
         self.tab_layout.scroll = 0
-        body = url.request(self.url, payload)
+        response_headers, body = url.request(self.url, payload)
         self.url = url
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
         self.title = get_html_title(self.nodes)
-        
+        self.handle_origins(response_headers)
+
         self.rules = self.DEFAULT_STYLE_SHEET.copy()
-        self.rules.extend(get_css_rules(self.nodes ,url))
+        self.rules.extend(get_css_rules(self, url))
         
         self.js.start_runtime_env()
         script_urls = get_external_scripts(self.nodes)
@@ -51,11 +53,27 @@ class Tab:
     def run_scripts(self, script_urls):
         for script in script_urls:
             script_url = self.url.resolve(script)
+            if not self.allowed_request(script_url):
+                print("Blocked script", script, "due to CSP")
+                continue
             try:
-                body = script_url.request(self.url)
+                _, body = script_url.request(self.url)
                 self.js.run(body)
             except:
                 continue
+
+    def handle_origins(self, headers):
+        self.allowed_origins = None
+        if "content-security-policy" in headers:
+            csp = headers["content-security-policy"].split()
+            if len(csp) > 0 and csp[0] == "default-src":
+                self.allowed_origins = []
+                for origin in csp[1:]:
+                    self.allowed_origins.append(URL(origin).origin())
+
+    def allowed_request(self, url):
+        return self.allowed_origins == None or \
+            url.origin() in self.allowed_origins
 
     def render(self):
         self.display_list = []
@@ -92,6 +110,8 @@ class Tab:
     def click(self, x, y):
         self.focus = None
         clicked_elements = self.get_clicked_elements(x, y)
+        if not clicked_elements:
+            return
         inner_element = clicked_elements['inner']
         interactive_element = clicked_elements['interactive']
         
