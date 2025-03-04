@@ -5,7 +5,7 @@ from .socket_manager import socket_manager
 from .cache import cache
 from util.utils import *
 
-
+COOKIE_JAR = {}
 
 class URL:
     DEFAULT_FILE_PATH="file:///Users/li016390/Desktop/challenges/browser/pages/test.html"
@@ -87,7 +87,7 @@ class URL:
 
         assert self.data_type in URL.DATA_URL_TYPES
     
-    def request(self, payload=None):
+    def request(self, referrer, payload=None):
         if self.is_malformed_url:
             return " "
 
@@ -111,7 +111,7 @@ class URL:
             request = "{} {}?{} HTTP/1.1\r\n".format(self.method, self.path, self.query)
         else:
             request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
-        request += self.get_req_headers_string()
+        request += self.get_req_headers_string(referrer)
         request += "\r\n"
         if payload: request += payload 
 
@@ -128,6 +128,19 @@ class URL:
                         
         version, status, explanation = self.parse_status_line(line_bytes)
         response_headers = self.parse_response_headers(response)
+        
+        if "set-cookie" in response_headers:
+            cookie = response_headers["set-cookie"]
+            params = {}
+            if ";" in cookie:
+                cookie, rest = cookie.split(";", 1)
+                for param in rest.split(";"):
+                    if '=' in param:
+                        param, value = param.split("=", 1)
+                    else:
+                        value = "true"
+                    params[param.strip().casefold()] = value.casefold()
+            COOKIE_JAR[self.host] = (cookie, params)
 
         if self.is_chunked(response_headers):
             content = self.read_chunked_response(response)
@@ -147,7 +160,7 @@ class URL:
         if self.should_cache_response(response_headers):
             cache.save_to_cache(self, content)
         
-        return content
+        return response_headers, content
 
     def need_socket(self):
         return self.scheme in ["http", "https"]
@@ -172,10 +185,23 @@ class URL:
 
         return socket
     
-    def get_req_headers_string(self):
+    def origin(self):
+        return self.scheme + "://" + self.host + ":" + str(self.port)
+    
+    def get_req_headers_string(self, referrer):
         headers = ""
         for key,value in self.headers.items():
             headers += "{}: {}\r\n".format(key, value)
+
+        if self.host in COOKIE_JAR:
+            cookie, params = COOKIE_JAR[self.host]
+            allow_cookie = True
+            if referrer and params.get("samesite", "none") == "lax":
+                if self.method != "GET":
+                    allow_cookie = self.host == referrer.host
+            if allow_cookie:
+                headers += "Cookie: {}\r\n".format(cookie)
+        
         return headers
     
     def parse_response_headers(self, response):
@@ -194,8 +220,9 @@ class URL:
 
         new_url = URL(full_address)
         new_url.increase_redirect_count(self.redirect_count)
+        _, content = new_url.request()
 
-        return new_url.request()
+        return content
 
     def add_host_if_needed(self,url):
         if self.is_relative_url(url):

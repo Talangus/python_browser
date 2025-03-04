@@ -169,7 +169,7 @@ class BlockLayout:
         elif any([isinstance(child, Element) and child.style['display'] == 'block'
                   for child in self.node.children]):
             return "block"
-        elif self.node.children or self.node.tag == "input":
+        elif self.node.children or (self.node.tag == "input" and not self.node.has_attribute("type", "hidden")):
             return "inline"
         else:
             return "block"

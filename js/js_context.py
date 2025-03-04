@@ -238,3 +238,14 @@ class JSContext:
         else:
             return element.text
 
+    def XMLHttpRequest_send(self, method, url, body):
+        full_url = self.tab.url.resolve(url)
+        if not self.tab.allowed_request(full_url):
+            raise Exception("Cross-origin XHR blocked by CSP")
+        _, out = full_url.request(self.tab.url, body)
+        if full_url.origin() != self.tab.url.origin():
+            raise Exception("Cross-origin XHR request not allowed")
+        return out
+    
+    def origin(self):
+        return self.scheme + "://" + self.host + ":" + str(self.port)
