@@ -43,6 +43,8 @@ class InputLayout:
 
         if self.node.tag == "input":
             text = self.node.attributes.get("value", "")
+            if self.node.has_attribute("type", "password"):
+                text = len(text) * '*'
             if self.node.is_focused:
                 cx = self.x + self.font.measure(text)
                 cmds.append(DrawLine(
