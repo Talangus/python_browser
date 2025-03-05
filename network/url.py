@@ -21,6 +21,7 @@ class URL:
     def __init__(self, url):
         try:
             self.query = None
+            self.ssl_error = False
             self.scheme, rest = URL.parse_scheme(url)
 
             if self.scheme == 'view-source':
@@ -155,7 +156,7 @@ class URL:
 
         if self.is_redirect(status):
             location = response_headers['location']
-            return self.get_redirect_content(location)
+            return self.get_redirect_content(referrer, location)
 
         if self.should_cache_response(response_headers):
             cache.save_to_cache(self, content)
@@ -181,8 +182,13 @@ class URL:
     def get_socket(self):
         socket = socket_manager.get_socket(self.host, self.port)
         if self.scheme == "https" and not socket_manager.is_HTTPS_socket(self.host, self.port):
-            socket = socket_manager.upgrade_to_https(self.host, self.port)
-
+            try:
+                socket = socket_manager.upgrade_to_https(self.host, self.port, allow_invalid_cert=False)
+            except:
+                self.ssl_error = True
+                socket_manager.reset_connection(self.host, self.port)
+                socket = socket_manager.upgrade_to_https(self.host, self.port, allow_invalid_cert=True)
+                return socket
         return socket
     
     def origin(self):
@@ -215,14 +221,14 @@ class URL:
 
         return response_headers
    
-    def get_redirect_content(self, location):
+    def get_redirect_content(self, referrer, location):
         full_address = self.add_host_if_needed(location)
 
         new_url = URL(full_address)
         new_url.increase_redirect_count(self.redirect_count)
-        _, content = new_url.request()
+        response_headers, content = new_url.request(referrer)
 
-        return content
+        return response_headers, content
 
     def add_host_if_needed(self,url):
         if self.is_relative_url(url):
