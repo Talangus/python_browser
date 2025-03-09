@@ -3,6 +3,7 @@ from html_.html_parser import HTMLParser
 from html_.element import Element
 from util.utils import *
 from js.utils import *
+from util.utils import COOKIE_JAR
 import dukpy
 
 RUNTIME_JS = open("js/runtime.js").read()
@@ -59,6 +60,10 @@ class JSContext:
             self.insert_before)
         self.interp.export_function("remove_child",
             self.remove_child)
+        self.interp.export_function("cookie_get",
+            self.cookie_get)
+        self.interp.export_function("cookie_set",
+            self.cookie_set)
 
     def run(self, code):
         try:
@@ -249,3 +254,19 @@ class JSContext:
     
     def origin(self):
         return self.scheme + "://" + self.host + ":" + str(self.port)
+
+    def cookie_get(self):
+        host = self.tab.url.host
+        cookie, parameters = COOKIE_JAR[host]
+        if 'httponly' in parameters:
+            return ''
+
+        return cookie
+    
+    def cookie_set(self, cookie):
+        host = self.tab.url.host
+        _, parameters = COOKIE_JAR[host]
+        if 'httponly' in parameters:
+            return 
+
+        COOKIE_JAR[host] = parse_cookie(cookie)

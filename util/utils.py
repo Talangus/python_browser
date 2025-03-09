@@ -9,6 +9,8 @@ class CustomError(Exception):
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+COOKIE_JAR = {}
+
 def generate_host_key(host, port):
         return host + ':' + str(port)
 
@@ -100,3 +102,15 @@ def is_get_form_method(element):
 
 def is_checkbox(node):
     return node.is_tag("input") and node.has_attribute("type", "checkbox")
+
+def parse_cookie(cookie):
+    params = {}
+    if ";" in cookie:
+        cookie, rest = cookie.split(";", 1)
+        for param in rest.split(";"):
+            if '=' in param:
+                param, value = param.split("=", 1)
+            else:
+                value = "true"
+            params[param.strip().casefold()] = value.casefold()
+    return (cookie, params)

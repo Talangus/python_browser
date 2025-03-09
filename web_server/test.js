@@ -20,3 +20,6 @@ form.addEventListener("submit", function(e) {
     if (!allow_submit) e.preventDefault();
 });
 
+console.log(document.cookie)
+// document.cookie = 'token=123456'
+console.log(document.cookie)

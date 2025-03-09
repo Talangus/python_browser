@@ -10,6 +10,14 @@ document = {
     }    
 
 }
+Object.defineProperty(document, 'cookie', {
+    set: function(s) {
+        call_python("cookie_set", s.toString());
+    },
+    get: function() {
+        return call_python("cookie_get");
+    }
+});
 
 LISTENERS = {}
 function Node(handle) { this.handle = handle; }
