@@ -113,4 +113,26 @@ def parse_cookie(cookie):
             else:
                 value = "true"
             params[param.strip().casefold()] = value.casefold()
+    
+    if "expires" in params:
+        params["expires"] = parse_expires(params["expires"])
+
     return (cookie, params)
+
+def is_cookie_expired(parameters):
+    if "expires" not in parameters:
+        return False
+    
+    expires = parameters["expires"]
+    current_time = datetime.now()
+
+    return current_time > expires
+
+
+def parse_expires(expires_str):
+    try:
+        utc_format = "%a, %d-%b-%Y %H:%M:%S %Z"
+        parsed_date = datetime.strptime(expires_str, utc_format)
+        return parsed_date
+    except ValueError as e:
+        raise ValueError(f"Invalid expires format: {expires_str}") from e

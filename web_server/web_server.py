@@ -2,6 +2,8 @@ import socket
 import urllib.parse
 import random
 import html
+from datetime import datetime, timedelta, timezone
+
 
 
 ENTRIES = [ ('Pavel was here', "Pavel") ]
@@ -21,6 +23,7 @@ def handle_connection(conx):
     print(method, url)
     assert method in ["GET", "POST"]
     headers = {}
+    token = None
     while True:
         line = req.readline().decode('utf8')
         if line == '\r\n': break
@@ -35,24 +38,33 @@ def handle_connection(conx):
 
     if "cookie" in headers:
         token = headers["cookie"][len("token="):]
-    else:
-        token = str(random.random())[2:]    
+        if token in SESSIONS and "expires" in SESSIONS[token]:
+            expires = SESSIONS[token]["expires"]
+            if expires < datetime.now():
+                del SESSIONS[token]
+                token = None
+
+    if token is None:
+        token = str(random.random())[2:]
+        expires = get_cookie_experation(timedelta(minutes=0.5))    
 
 
-    session = SESSIONS.setdefault(token, {})
+    session = SESSIONS.setdefault(token, {'expires': expires})
     status, body = do_request(session, method, url, headers, body)
     response = "HTTP/1.0 {}\r\n".format(status)
     response += "Content-Length: {}\r\n".format(
         len(body.encode("utf8")))
     if 'cookie' not in headers:
-        template = "Set-Cookie: token={}; SameSite=Lax\r\n"
-        response += template.format(token)
+        expires_str = gen_expires_str(session)
+        template = "Set-Cookie: token={}; SameSite=Lax; expires={}\r\n"
+        response += template.format(token, expires_str)
     
     csp = "default-src http://localhost:8000"
     response += "Content-Security-Policy: {}\r\n".format(csp)
 
     response += "\r\n" + body
     conx.send(response.encode('utf8'))
+    print("Cookie is: " + token)
     conx.close()
 
 def do_request(session, method, url, headers, body):
@@ -141,7 +153,7 @@ def show_comments(session):
     
 
 def add_entry(session, params):
-    if "user" not in session: return
+    if "user" not in session: return "<a href=/login>Sign in to write in the guest book</a>"
     if "nonce" not in session or "nonce" not in params: return
     if session["nonce"] != params["nonce"]: return
     if 'guest' in params:
@@ -152,6 +164,17 @@ def not_found(url, method):
     out = "<!doctype html>"
     out += "<h1>{} {} not found!</h1>".format(method, url)
     return out
+
+def gen_expires_str(session):
+    return session['expires'].strftime("%a, %d-%b-%Y %H:%M:%S GMT")
+
+def get_cookie_experation(delta = timedelta(minutes=1)):
+    current_time = datetime.now()
+    time_plus_delta = current_time + delta
+
+    return time_plus_delta
+
+
 
 s = socket.socket(
     family=socket.AF_INET,

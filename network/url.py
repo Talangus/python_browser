@@ -192,6 +192,10 @@ class URL:
 
         if self.host in COOKIE_JAR:
             cookie, params = COOKIE_JAR[self.host]
+            if is_cookie_expired(params):
+                del COOKIE_JAR[self.host]
+                return headers
+            
             allow_cookie = True
             if referrer and params.get("samesite", "none") == "lax":
                 if self.method != "GET":
