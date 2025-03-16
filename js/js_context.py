@@ -247,11 +247,21 @@ class JSContext:
         full_url = self.tab.url.resolve(url)
         if not self.tab.allowed_request(full_url):
             raise Exception("Cross-origin XHR blocked by CSP")
-        _, out = full_url.request(self.tab.url, body)
-        if full_url.origin() != self.tab.url.origin():
-            raise Exception("Cross-origin XHR request not allowed")
+        response_headers, out = full_url.request(self.tab.url, body)
+        # if full_url.origin() != self.tab.url.origin():
+        #     raise Exception("Cross-origin XHR request not allowed")
+        self.cors_allowed(full_url.origin(), self.tab.url.origin(), response_headers)
         return out
     
+    @staticmethod
+    def cors_allowed(destination_origin, current_origin, response_headers):
+        if destination_origin != current_origin:
+            if "Access-Control-Allow-Origin".casefold() in response_headers: ##test with mock page
+                return 
+            
+            raise Exception("Cross-origin XHR request not allowed")
+
+
     def origin(self):
         return self.scheme + "://" + self.host + ":" + str(self.port)
 

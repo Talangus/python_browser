@@ -203,6 +203,8 @@ class URL:
             if allow_cookie:
                 headers += "Cookie: {}\r\n".format(cookie)
         
+
+        
         return headers
     
     def parse_response_headers(self, response):
