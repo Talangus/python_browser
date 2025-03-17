@@ -59,7 +59,7 @@ def handle_connection(conx):
         template = "Set-Cookie: token={}; SameSite=Lax; expires={}\r\n"
         response += template.format(token, expires_str)
     
-    csp = "default-src http://localhost:8000"
+    csp = "default-src http://localhost:8000 https://run.mocky.io"
     response += "Content-Security-Policy: {}\r\n".format(csp)
 
     response += "\r\n" + body

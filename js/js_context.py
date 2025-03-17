@@ -5,6 +5,7 @@ from util.utils import *
 from js.utils import *
 from util.utils import COOKIE_JAR
 import dukpy
+from network.url import URL
 
 RUNTIME_JS = open("js/runtime.js").read()
 EVENT_DISPATCH_JS = "new Node(dukpy.handle).dispatchEvent(new Event(dukpy.type))"
@@ -64,6 +65,9 @@ class JSContext:
             self.cookie_get)
         self.interp.export_function("cookie_set",
             self.cookie_set)
+        self.interp.export_function("XMLHttpRequest_send",
+            self.XMLHttpRequest_send)
+
 
     def run(self, code):
         try:
@@ -248,18 +252,22 @@ class JSContext:
         if not self.tab.allowed_request(full_url):
             raise Exception("Cross-origin XHR blocked by CSP")
         response_headers, out = full_url.request(self.tab.url, body)
-        # if full_url.origin() != self.tab.url.origin():
-        #     raise Exception("Cross-origin XHR request not allowed")
         self.cors_allowed(full_url.origin(), self.tab.url.origin(), response_headers)
         return out
     
     @staticmethod
     def cors_allowed(destination_origin, current_origin, response_headers):
-        if destination_origin != current_origin:
-            if "Access-Control-Allow-Origin".casefold() in response_headers: ##test with mock page
-                return 
+        if destination_origin == current_origin:
+            return
+
+        if "Access-Control-Allow-Origin".casefold() in response_headers:
+            allowed_origin  =  response_headers["Access-Control-Allow-Origin".casefold()]
+            if allowed_origin == '*': return
+
+            if URL(allowed_origin).origin() == current_origin:
+                return
             
-            raise Exception("Cross-origin XHR request not allowed")
+        raise Exception("Cross-origin XHR request not allowed")
 
 
     def origin(self):
