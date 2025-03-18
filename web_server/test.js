@@ -20,4 +20,3 @@ form.addEventListener("submit", function(e) {
     if (!allow_submit) e.preventDefault();
 });
 
-console.log(xhr.responseText)
