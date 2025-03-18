@@ -5,8 +5,6 @@ from .socket_manager import socket_manager
 from .cache import cache
 from util.utils import *
 
-# COOKIE_JAR = {}
-
 class URL:
     DEFAULT_FILE_PATH="file:///Users/li016390/Desktop/challenges/browser/pages/test.html"
     SUPPORTED_SCHEME_PORTS={
