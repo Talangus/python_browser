@@ -251,7 +251,7 @@ class JSContext:
         full_url = self.tab.url.resolve(url)
         if not self.tab.allowed_request(full_url):
             raise Exception("Cross-origin XHR blocked by CSP")
-        response_headers, out = full_url.request(self.tab.url, body)
+        response_headers, out = full_url.request(self.tab, body)
         self.cors_allowed(full_url.origin(), self.tab.url.origin(), response_headers)
         return out
     

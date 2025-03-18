@@ -46,8 +46,11 @@ def handle_connection(conx):
 
     if token is None:
         token = str(random.random())[2:]
-        expires = get_cookie_experation(timedelta(minutes=0.5))    
+        expires = get_cookie_experation(timedelta(minutes=5))    
 
+    if "referer" in headers:
+        referer = headers["referer"]
+        print(f"Referer is {referer}")
 
     session = SESSIONS.setdefault(token, {'expires': expires})
     status, body = do_request(session, method, url, headers, body)
@@ -61,6 +64,8 @@ def handle_connection(conx):
     
     csp = "default-src http://localhost:8000 https://run.mocky.io"
     response += "Content-Security-Policy: {}\r\n".format(csp)
+    response += "Access-Control-Allow-Origin: *\r\n"
+    response += "Referrer-Policy: same-origin\r\n"
 
     response += "\r\n" + body
     conx.send(response.encode('utf8'))

@@ -88,7 +88,7 @@ class URL:
 
         assert self.data_type in URL.DATA_URL_TYPES
     
-    def request(self, referrer, payload=None):
+    def request(self, tab, payload=None):
         if self.is_malformed_url:
             return " "
 
@@ -112,7 +112,7 @@ class URL:
             request = "{} {}?{} HTTP/1.1\r\n".format(self.method, self.path, self.query)
         else:
             request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
-        request += self.get_req_headers_string(referrer)
+        request += self.get_req_headers_string(tab)
         request += "\r\n"
         if payload: request += payload 
 
@@ -147,7 +147,7 @@ class URL:
 
         if self.is_redirect(status):
             location = response_headers['location']
-            return self.get_redirect_content(referrer, location)
+            return self.get_redirect_content(tab, location)
 
         if self.should_cache_response(response_headers):
             cache.save_to_cache(self, content)
@@ -185,7 +185,9 @@ class URL:
     def origin(self):
         return self.scheme + "://" + self.host + ":" + str(self.port)
     
-    def get_req_headers_string(self, referrer):
+    def get_req_headers_string(self, tab):
+        referrer = tab.url
+        referer_policy = tab.referer_policy
         headers = ""
         for key,value in self.headers.items():
             headers += "{}: {}\r\n".format(key, value)
@@ -203,10 +205,23 @@ class URL:
             if allow_cookie:
                 headers += "Cookie: {}\r\n".format(cookie)
         
-
+        if self.should_add_referer(referrer,referer_policy):
+            headers+= "Referer: {}\r\n".format(str(referrer))
         
         return headers
     
+    def should_add_referer(self, referrer, referer_policy):
+        if referrer is None:
+            return False
+        
+        if referer_policy == 'no-referrer':
+            return False
+        
+        if referer_policy == 'same-origin':
+            return self.origin() == referrer.origin()
+
+        return True
+
     def parse_response_headers(self, response):
         response_headers = {}
         while True:
@@ -218,12 +233,12 @@ class URL:
 
         return response_headers
    
-    def get_redirect_content(self, referrer, location):
+    def get_redirect_content(self, tab, location):
         full_address = self.add_host_if_needed(location)
 
         new_url = URL(full_address)
         new_url.increase_redirect_count(self.redirect_count)
-        response_headers, content = new_url.request(referrer)
+        response_headers, content = new_url.request(tab)
 
         return response_headers, content
 

@@ -28,7 +28,7 @@ def get_external_css_rules(tab, node_list, url):
                 print("Blocked style", link, "due to CSP")
                 continue
         try:
-            _, body = style_url.request(tab.url, url)
+            _, body = style_url.request(tab, url)
             new_rules = CSSParser(body).parse()
             rules.extend(new_rules)
         except:
