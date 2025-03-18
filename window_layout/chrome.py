@@ -6,6 +6,8 @@ from window_layout.draw_outline import DrawOutline
 from window_layout.draw_line import DrawLine
 from network.url import URL
 
+PADLOCK_CHAR='\N{lock}'
+CROSSMARK_CHAR = '\N{CROSS MARK}'
 class Chrome:
     def __init__(self, browser):
         self.browser = browser
@@ -68,7 +70,6 @@ class Chrome:
         self.paint_tabs(cmds)
         self.paint_back_button(cmds)
         self.paint_forward_button(cmds)
-
         self.paint_address_bar(cmds)
 
         return cmds
@@ -133,9 +134,14 @@ class Chrome:
                 self.address_rect.bottom,
                 "red", 1))
         else:
+            w = 0
+            if self.should_paint_padlock():
+                cmds.extend(self.get_padlock_cmds())
+                w = self.font.measure(PADLOCK_CHAR) + self.padding
+
             url = str(self.browser.active_tab.url)
             cmds.append(DrawText(
-                self.address_rect.left + self.padding,
+                self.address_rect.left + self.padding + w,
                 self.address_rect.top,
                 url, self.font, "black"))
 
@@ -176,3 +182,23 @@ class Chrome:
 
     def blur(self):
         self.focus = None
+
+    def should_paint_padlock(self):
+        return self.browser.active_tab.url.scheme == 'https'
+    
+    def get_padlock_cmds(self):
+        padlock_cmd = DrawText(
+                self.address_rect.left + self.padding,
+                self.address_rect.top,
+                PADLOCK_CHAR, self.font, 'black')
+        cmds = [padlock_cmd]
+        
+        if self.browser.active_tab.url.ssl_error:
+            w = self.font.measure(PADLOCK_CHAR)/4
+            crossmark_cmd = DrawText(
+                self.address_rect.left + self.padding + 4,
+                self.address_rect.top,
+                'X', self.font, 'red')
+            cmds.append(crossmark_cmd)
+
+        return cmds

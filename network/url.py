@@ -5,8 +5,6 @@ from .socket_manager import socket_manager
 from .cache import cache
 from util.utils import *
 
-COOKIE_JAR = {}
-
 class URL:
     DEFAULT_FILE_PATH="file:///Users/li016390/Desktop/challenges/browser/pages/test.html"
     SUPPORTED_SCHEME_PORTS={
@@ -21,6 +19,7 @@ class URL:
     def __init__(self, url):
         try:
             self.query = None
+            self.ssl_error = False
             self.scheme, rest = URL.parse_scheme(url)
 
             if self.scheme == 'view-source':
@@ -87,7 +86,7 @@ class URL:
 
         assert self.data_type in URL.DATA_URL_TYPES
     
-    def request(self, referrer, payload=None):
+    def request(self, tab, payload=None):
         if self.is_malformed_url:
             return " "
 
@@ -111,7 +110,7 @@ class URL:
             request = "{} {}?{} HTTP/1.1\r\n".format(self.method, self.path, self.query)
         else:
             request = "{} {} HTTP/1.1\r\n".format(self.method, self.path)
-        request += self.get_req_headers_string(referrer)
+        request += self.get_req_headers_string(tab)
         request += "\r\n"
         if payload: request += payload 
 
@@ -131,16 +130,7 @@ class URL:
         
         if "set-cookie" in response_headers:
             cookie = response_headers["set-cookie"]
-            params = {}
-            if ";" in cookie:
-                cookie, rest = cookie.split(";", 1)
-                for param in rest.split(";"):
-                    if '=' in param:
-                        param, value = param.split("=", 1)
-                    else:
-                        value = "true"
-                    params[param.strip().casefold()] = value.casefold()
-            COOKIE_JAR[self.host] = (cookie, params)
+            COOKIE_JAR[self.host] = parse_cookie(cookie)
 
         if self.is_chunked(response_headers):
             content = self.read_chunked_response(response)
@@ -155,7 +145,7 @@ class URL:
 
         if self.is_redirect(status):
             location = response_headers['location']
-            return self.get_redirect_content(location)
+            return self.get_redirect_content(tab, location)
 
         if self.should_cache_response(response_headers):
             cache.save_to_cache(self, content)
@@ -181,20 +171,31 @@ class URL:
     def get_socket(self):
         socket = socket_manager.get_socket(self.host, self.port)
         if self.scheme == "https" and not socket_manager.is_HTTPS_socket(self.host, self.port):
-            socket = socket_manager.upgrade_to_https(self.host, self.port)
-
+            try:
+                socket = socket_manager.upgrade_to_https(self.host, self.port, allow_invalid_cert=False)
+            except:
+                self.ssl_error = True
+                socket_manager.reset_connection(self.host, self.port)
+                socket = socket_manager.upgrade_to_https(self.host, self.port, allow_invalid_cert=True)
+                return socket
         return socket
     
     def origin(self):
         return self.scheme + "://" + self.host + ":" + str(self.port)
     
-    def get_req_headers_string(self, referrer):
+    def get_req_headers_string(self, tab):
+        referrer = tab.url
+        referer_policy = tab.referer_policy
         headers = ""
         for key,value in self.headers.items():
             headers += "{}: {}\r\n".format(key, value)
 
         if self.host in COOKIE_JAR:
             cookie, params = COOKIE_JAR[self.host]
+            if is_cookie_expired(params):
+                del COOKIE_JAR[self.host]
+                return headers
+            
             allow_cookie = True
             if referrer and params.get("samesite", "none") == "lax":
                 if self.method != "GET":
@@ -202,8 +203,23 @@ class URL:
             if allow_cookie:
                 headers += "Cookie: {}\r\n".format(cookie)
         
+        if self.should_add_referer(referrer,referer_policy):
+            headers+= "Referer: {}\r\n".format(str(referrer))
+        
         return headers
     
+    def should_add_referer(self, referrer, referer_policy):
+        if referrer is None:
+            return False
+        
+        if referer_policy == 'no-referrer':
+            return False
+        
+        if referer_policy == 'same-origin':
+            return self.origin() == referrer.origin()
+
+        return True
+
     def parse_response_headers(self, response):
         response_headers = {}
         while True:
@@ -215,14 +231,14 @@ class URL:
 
         return response_headers
    
-    def get_redirect_content(self, location):
+    def get_redirect_content(self, tab, location):
         full_address = self.add_host_if_needed(location)
 
         new_url = URL(full_address)
         new_url.increase_redirect_count(self.redirect_count)
-        _, content = new_url.request()
+        response_headers, content = new_url.request(tab)
 
-        return content
+        return response_headers, content
 
     def add_host_if_needed(self,url):
         if self.is_relative_url(url):

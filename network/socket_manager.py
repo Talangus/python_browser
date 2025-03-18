@@ -27,7 +27,7 @@ class SocketManager:
             self.sockets[name] = new_socket
             return new_socket
 
-    def upgrade_to_https(self, host, port):
+    def upgrade_to_https(self, host, port, allow_invalid_cert):
         name = generate_host_key(host, port)
         
         if name not in self.sockets:
@@ -36,7 +36,14 @@ class SocketManager:
         socket = self.sockets[name]
 
         ctx = ssl.create_default_context()
-        socket = ctx.wrap_socket(socket, server_hostname=host)
+        if allow_invalid_cert:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        try:
+            socket = ctx.wrap_socket(socket, server_hostname=host)
+        except Exception as https_error:
+            print("Error while upgrading to https: " + str(https_error))
+            raise https_error
 
         self.sockets[name] = socket
         return socket

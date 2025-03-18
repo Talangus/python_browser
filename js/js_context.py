@@ -3,7 +3,9 @@ from html_.html_parser import HTMLParser
 from html_.element import Element
 from util.utils import *
 from js.utils import *
+from util.utils import COOKIE_JAR
 import dukpy
+from network.url import URL
 
 RUNTIME_JS = open("js/runtime.js").read()
 EVENT_DISPATCH_JS = "new Node(dukpy.handle).dispatchEvent(new Event(dukpy.type))"
@@ -59,6 +61,13 @@ class JSContext:
             self.insert_before)
         self.interp.export_function("remove_child",
             self.remove_child)
+        self.interp.export_function("cookie_get",
+            self.cookie_get)
+        self.interp.export_function("cookie_set",
+            self.cookie_set)
+        self.interp.export_function("XMLHttpRequest_send",
+            self.XMLHttpRequest_send)
+
 
     def run(self, code):
         try:
@@ -242,10 +251,40 @@ class JSContext:
         full_url = self.tab.url.resolve(url)
         if not self.tab.allowed_request(full_url):
             raise Exception("Cross-origin XHR blocked by CSP")
-        _, out = full_url.request(self.tab.url, body)
-        if full_url.origin() != self.tab.url.origin():
-            raise Exception("Cross-origin XHR request not allowed")
+        response_headers, out = full_url.request(self.tab, body)
+        self.cors_allowed(full_url.origin(), self.tab.url.origin(), response_headers)
         return out
     
+    @staticmethod
+    def cors_allowed(destination_origin, current_origin, response_headers):
+        if destination_origin == current_origin:
+            return
+
+        if "Access-Control-Allow-Origin".casefold() in response_headers:
+            allowed_origin  =  response_headers["Access-Control-Allow-Origin".casefold()]
+            if allowed_origin == '*': return
+
+            if URL(allowed_origin).origin() == current_origin:
+                return
+            
+        raise Exception("Cross-origin XHR request not allowed")
+
+
     def origin(self):
         return self.scheme + "://" + self.host + ":" + str(self.port)
+
+    def cookie_get(self):
+        host = self.tab.url.host
+        cookie, parameters = COOKIE_JAR[host]
+        if 'httponly' in parameters:
+            return ''
+
+        return cookie
+    
+    def cookie_set(self, cookie):
+        host = self.tab.url.host
+        _, parameters = COOKIE_JAR[host]
+        if 'httponly' in parameters:
+            return 
+
+        COOKIE_JAR[host] = parse_cookie(cookie)

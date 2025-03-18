@@ -27,18 +27,20 @@ class Tab:
         self.history = []
         self.forward_stack = []
         self.focus = None
+        self.referer_policy = None
         self.js = JSContext(self)
     
     def load(self, url, payload=None):
         self.history.append(url)
         self.tab_layout.scroll = 0
-        response_headers, body = url.request(self.url, payload)
+        response_headers, body = url.request(self, payload)
         self.url = url
         parser = get_html_parser(body, url)
         nodes = parser.parse()
         self.nodes = html_decode(nodes)
         self.title = get_html_title(self.nodes)
         self.handle_origins(response_headers)
+        self.handle_referer_policy(response_headers)
 
         self.rules = self.DEFAULT_STYLE_SHEET.copy()
         self.rules.extend(get_css_rules(self, url))
@@ -57,7 +59,7 @@ class Tab:
                 print("Blocked script", script, "due to CSP")
                 continue
             try:
-                _, body = script_url.request(self.url)
+                _, body = script_url.request(self)
                 self.js.run(body)
             except:
                 continue
@@ -70,6 +72,15 @@ class Tab:
                 self.allowed_origins = []
                 for origin in csp[1:]:
                     self.allowed_origins.append(URL(origin).origin())
+                
+    def handle_referer_policy(self, headers):
+        if "referrer-policy" not in headers:
+            return
+        
+        policy = headers["referrer-policy"]
+        if policy in ['no-referrer', 'same-origin']:
+            self.referer_policy = policy
+    
 
     def allowed_request(self, url):
         return self.allowed_origins == None or \

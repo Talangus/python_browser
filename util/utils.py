@@ -9,6 +9,8 @@ class CustomError(Exception):
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+COOKIE_JAR = {}
+
 def generate_host_key(host, port):
         return host + ':' + str(port)
 
@@ -100,3 +102,37 @@ def is_get_form_method(element):
 
 def is_checkbox(node):
     return node.is_tag("input") and node.has_attribute("type", "checkbox")
+
+def parse_cookie(cookie):
+    params = {}
+    if ";" in cookie:
+        cookie, rest = cookie.split(";", 1)
+        for param in rest.split(";"):
+            if '=' in param:
+                param, value = param.split("=", 1)
+            else:
+                value = "true"
+            params[param.strip().casefold()] = value.casefold()
+    
+    if "expires" in params:
+        params["expires"] = parse_expires(params["expires"])
+
+    return (cookie, params)
+
+def is_cookie_expired(parameters):
+    if "expires" not in parameters:
+        return False
+    
+    expires = parameters["expires"]
+    current_time = datetime.now()
+
+    return current_time > expires
+
+
+def parse_expires(expires_str):
+    try:
+        utc_format = "%a, %d-%b-%Y %H:%M:%S %Z"
+        parsed_date = datetime.strptime(expires_str, utc_format)
+        return parsed_date
+    except ValueError as e:
+        raise ValueError(f"Invalid expires format: {expires_str}") from e
