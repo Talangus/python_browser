@@ -17,10 +17,10 @@ class TabLayout:
         self.width = self.tab.width
 
     def is_below_viewport(self, cmd):
-        return cmd.rect.top > self.scroll + self.height
+        return cmd.rect.top() > self.scroll + self.height
     
     def is_above_viewport(self,cmd, offset):
-        return cmd.rect.top < self.scroll
+        return cmd.rect.top() < self.scroll
 
 
     def on_scrolldown(self, event):

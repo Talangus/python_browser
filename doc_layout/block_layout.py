@@ -38,7 +38,7 @@ class BlockLayout:
             self.in_head = self.node_is("head")
     
     def self_rect(self):
-        return Rect(self.x, self.y,
+        return  skia.Rect.MakeLTRB(self.x, self.y,
             self.x + self.width, self.y + self.height)    
 
     def paint(self):
@@ -73,17 +73,15 @@ class BlockLayout:
         bullet_char = "•"
         parent_font = get_html_node_font(self.node)
 
-        width = parent_font.measure(bullet_char)
-        ascent = parent_font.metrics("ascent")  
-        descent = parent_font.metrics("descent")  
-        line_height = ascent + descent  
+        width = parent_font.measureText(bullet_char)
+        line_height = linespace(parent_font)
         square_size = width  
         
         top_offset = (line_height - square_size) // 1.1
         x1, y1 = self.x, self.y + top_offset
         x2, y2 = x1 + square_size, y1 + square_size
 
-        return DrawRect(Rect(x1, y1, x2, y2), "black")
+        return DrawRect(skia.Rect.MakeLTRB(x1, y1, x2, y2), "black")
     
     def init_coordinates(self):
         self.x = self.parent.x
@@ -253,7 +251,7 @@ class BlockLayout:
 
     def get_centered_cursor_x(self, text):
         font = get_html_node_font(self.node)
-        w = font.measure(text)
+        w = font.measureText(text)
         white_space = self.width - w
         left_margin = white_space/2
         return left_margin

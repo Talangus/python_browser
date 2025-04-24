@@ -14,17 +14,17 @@ class CheckboxLayout:
 
     def layout(self):
         self.font = get_html_node_font(self.node)
-        self.width = self.font.metrics("linespace")
+        self.width = linespace(self.font)
         
         if self.previous:
-            space = self.previous.font.measure(" ")
+            space = self.previous.font.measureText(" ")
             self.x = self.previous.x + self.previous.width + space
             first_child = False 
         else:
             self.x = self.parent.x
             first_child = True
 
-        self.height = self.font.metrics("linespace")
+        self.height = linespace(self.font)
         
         if not first_child and self.passed_line_width():
             self.parent.split_line(self)
@@ -50,5 +50,5 @@ class CheckboxLayout:
         return True
     
     def self_rect(self):
-        return Rect(self.x, self.y,
+        return skia.Rect.MakeLTRB(self.x, self.y,
             self.x + self.width, self.y + self.height) 

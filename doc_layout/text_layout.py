@@ -12,17 +12,17 @@ class TextLayout:
 
     def layout(self):
         self.font = get_html_node_font(self.node)
-        self.width = self.font.measure(self.word)
+        self.width = self.font.measureText(self.word)
 
         if self.previous:
-            space = self.previous.font.measure(" ")
+            space = self.previous.font.measureText(" ")
             self.x = self.previous.x + self.previous.width + space 
             first_child = False
         else:
             self.x = self.parent.x
             first_child = True
         
-        self.height = self.font.metrics("linespace")
+        self.height = linespace(self.font)
 
         if not first_child and self.passed_line_width():
             self.parent.split_line(self)

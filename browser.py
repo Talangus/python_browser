@@ -12,6 +12,7 @@ from network.cache import cache
 from tab import Tab
 from window_layout.chrome import Chrome
 from util.utils import *
+from doc_layout.utils import parse_color
 
 
 class Browser:
@@ -23,27 +24,24 @@ class Browser:
         self.sdl_window = sdl2.SDL_CreateWindow(b"Browser",
             sdl2.SDL_WINDOWPOS_CENTERED, sdl2.SDL_WINDOWPOS_CENTERED,
             self.width, self.height, sdl2.SDL_WINDOW_SHOWN)
-        # self.window = tkinter.Tk()
-        # self.canvas = tkinter.Canvas(
-        #     self.window, 
-        #     width=self.width,
-        #     height=self.height,
-        #     bg="white"
-        # )
-        self.canvas.pack(fill="both", expand=1)
+        self.root_surface = skia.Surface.MakeRaster(
+            skia.ImageInfo.Make(
+                self.width, self.height,
+                ct=skia.kRGBA_8888_ColorType,
+                at=skia.kUnpremul_AlphaType))
+        if sdl2.SDL_BYTEORDER == sdl2.SDL_BIG_ENDIAN:
+            self.RED_MASK = 0xff000000
+            self.GREEN_MASK = 0x00ff0000
+            self.BLUE_MASK = 0x0000ff00
+            self.ALPHA_MASK = 0x000000ff
+        else:
+            self.RED_MASK = 0x000000ff
+            self.GREEN_MASK = 0x0000ff00
+            self.BLUE_MASK = 0x00ff0000
+            self.ALPHA_MASK = 0xff000000
+        self.canvas = self.root_surface.getCanvas()
         self.chrome = Chrome(self)
         self.focus = None
-
-        # self.window.bind("<Down>", self.handle_scrolldown)
-        # self.window.bind("<Up>", self.handle_scrollup)
-        # self.window.bind("<Button-1>", self.handle_click)
-        # self.window.bind("<MouseWheel>", self.handle_mouse_wheel)
-        # self.window.bind("<Configure>", self.handle_resize)
-        # self.window.protocol("WM_DELETE_WINDOW", self.on_close)
-        # self.window.bind("<Key>", self.handle_key)
-        # self.window.bind("<Return>", self.handle_enter)
-        # self.window.bind("<BackSpace>", self.handle_backspace)
-        # self.window.bind("<Button-3>", self.handle_middle_click)
 
     def handle_scrolldown(self):
         self.active_tab.tab_layout.on_scrolldown()
@@ -114,11 +112,24 @@ class Browser:
         sdl2.SDL_DestroyWindow(self.sdl_window)
 
     def draw(self):
-        self.window.title(self.active_tab.title)
-        self.canvas.delete("all")
+        sdl2.SDL_SetWindowTitle(self.sdl_window, self.active_tab.title.encode('utf-8'))
+        self.canvas.clear(parse_color('white'))
         self.active_tab.draw(self.canvas, self.chrome.bottom)
         for cmd in self.chrome.paint():
             cmd.execute(0, self.canvas)
+            
+        skia_image = self.root_surface.makeImageSnapshot()
+        skia_bytes = skia_image.tobytes()
+        depth = 32 
+        pitch = 4 * self.width
+        sdl_surface = sdl2.SDL_CreateRGBSurfaceFrom(
+            skia_bytes, self.width, self.height, depth, pitch,
+            self.RED_MASK, self.GREEN_MASK,
+            self.BLUE_MASK, self.ALPHA_MASK)
+        rect = sdl2.SDL_Rect(0, 0, self.width, self.height)
+        window_surface = sdl2.SDL_GetWindowSurface(self.sdl_window)
+        sdl2.SDL_BlitSurface(sdl_surface, rect, window_surface, rect)
+        sdl2.SDL_UpdateWindowSurface(self.sdl_window)
 
     def new_tab(self, url):
         new_tab = Tab(self.width, self.height - self.chrome.bottom)
@@ -149,9 +160,9 @@ def mainloop(browser):
                     sdl2.SDL_Quit()
                     sys.exit()
                 case sdl2.SDL_MOUSEBUTTONUP:
-                    if event.button == sdl2.SDL_BUTTON_LEFT:
-                        browser.handle_click(event)
-                    elif event.button == sdl2.SDL_BUTTON_MIDDLE:
+                    if event.button.button == sdl2.SDL_BUTTON_LEFT:
+                        browser.handle_click(event.button)
+                    elif event.button.button == sdl2.SDL_BUTTON_MIDDLE:
                         browser.handle_middle_click(event)
                 case sdl2.SDL_KEYDOWN:
                     if event.key.keysym.sym == sdl2.SDLK_RETURN:
@@ -180,5 +191,4 @@ if __name__ == "__main__":
     
     browser = Browser()
     browser.new_tab(url)
-    # tkinter.mainloop()
     mainloop(browser)

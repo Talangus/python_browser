@@ -19,14 +19,14 @@ class InputLayout:
         self.width = INPUT_WIDTH_PX
         
         if self.previous:
-            space = self.previous.font.measure(" ")
+            space = self.previous.font.measureText(" ")
             self.x = self.previous.x + self.previous.width + space
             first_child = False 
         else:
             self.x = self.parent.x
             first_child = True
 
-        self.height = self.font.metrics("linespace")
+        self.height = linespace(self.font)
         
         if not first_child and self.passed_line_width():
             self.parent.split_line(self)
@@ -46,7 +46,7 @@ class InputLayout:
             if self.node.has_attribute("type", "password"):
                 text = len(text) * '*'
             if self.node.is_focused:
-                cx = self.x + self.font.measure(text)
+                cx = self.x + self.font.measureText(text)
                 cmds.append(DrawLine(
                     cx, self.y, cx, self.y + self.height, "black", 1))
         elif self.node.tag == "button":
@@ -65,5 +65,5 @@ class InputLayout:
         return True
     
     def self_rect(self):
-        return Rect(self.x, self.y,
+        return  skia.Rect.MakeLTRB(self.x, self.y,
             self.x + self.width, self.y + self.height) 
