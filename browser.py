@@ -23,7 +23,7 @@ class Browser:
         self.height = 600
         self.sdl_window = sdl2.SDL_CreateWindow(b"Browser",
             sdl2.SDL_WINDOWPOS_CENTERED, sdl2.SDL_WINDOWPOS_CENTERED,
-            self.width, self.height, sdl2.SDL_WINDOW_SHOWN)
+            self.width, self.height, sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_RESIZABLE)
         self.root_surface = skia.Surface.MakeRaster(
             skia.ImageInfo.Make(
                 self.width, self.height,
@@ -77,12 +77,12 @@ class Browser:
         self.draw()
 
     def handle_resize(self, event):
-        if event.data1 == 1 or event.data2 == 1:
-            return
+        new_width = event.window.data1
+        new_height = event.window.data2
         
-        self.width = event.data1
-        self.height = event.data2
-        self.active_tab.on_resize(event.data1, event.data2)
+        self.width = new_width
+        self.height = new_height
+        self.active_tab.on_resize(new_width, new_height)
         self.draw()
 
     def handle_key(self, char):
@@ -176,12 +176,12 @@ def mainloop(browser):
                 case sdl2.SDL_TEXTINPUT:
                     browser.handle_key(event.text.text.decode('utf8'))
                 case sdl2.SDL_MOUSEWHEEL:
-                    if event.y < 0:
+                    if event.wheel.y < 0:
                         browser.handle_scrolldown()
-                    elif event.y > 0:
+                    elif event.wheel.y > 0:
                         browser.handle_scrollup()
-                case sdl2.SDL_WindowEvent:
-                    if event.event == sdl2.SDL_WINDOWEVENT_SIZE_CHANGED:
+                case sdl2.SDL_WINDOWEVENT:
+                    if event.window.event == sdl2.SDL_WINDOWEVENT_SIZE_CHANGED:
                         browser.handle_resize(event)
 
 if __name__ == "__main__":

@@ -95,7 +95,7 @@ class Tab:
         # print_tree(self.document) 
         
     def draw(self, canvas, offset):
-        self.tab_layout.handle_scrollbar(canvas)
+        self.tab_layout.handle_scrollbar(canvas, offset)
         for cmd in self.display_list:
             if self.tab_layout.is_below_viewport(cmd): continue
             if self.tab_layout.is_above_viewport(cmd, offset): continue
