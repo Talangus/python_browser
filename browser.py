@@ -82,13 +82,17 @@ class Browser:
         
         self.width = new_width
         self.height = new_height
+        self.root_surface = skia.Surface.MakeRaster(
+            skia.ImageInfo.Make(
+                self.width, self.height,
+                ct=skia.kRGBA_8888_ColorType,
+                at=skia.kUnpremul_AlphaType))
+        self.canvas = self.root_surface.getCanvas()
+
         self.active_tab.on_resize(new_width, new_height)
         self.draw()
 
     def handle_key(self, char):
-        # if len(e.char) == 0: return
-        # if not (0x20 <= ord(e.char) < 0x7f): return
-
         if self.chrome.keypress(char):
             self.draw()
         elif self.focus == "content":
@@ -103,7 +107,10 @@ class Browser:
             self.draw()
 
     def handle_backspace(self):
-        self.chrome.backspace()
+        if self.focus == 'content':
+            self.active_tab.backspace()
+        else:
+            self.chrome.backspace()
         self.draw()
 
     def on_close(self):
@@ -163,7 +170,7 @@ def mainloop(browser):
                     if event.button.button == sdl2.SDL_BUTTON_LEFT:
                         browser.handle_click(event.button)
                     elif event.button.button == sdl2.SDL_BUTTON_MIDDLE:
-                        browser.handle_middle_click(event)
+                        browser.handle_middle_click(event.button)
                 case sdl2.SDL_KEYDOWN:
                     if event.key.keysym.sym == sdl2.SDLK_RETURN:
                         browser.handle_enter()

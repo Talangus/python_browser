@@ -95,11 +95,11 @@ class Tab:
         # print_tree(self.document) 
         
     def draw(self, canvas, offset):
-        self.tab_layout.handle_scrollbar(canvas, offset)
         for cmd in self.display_list:
             if self.tab_layout.is_below_viewport(cmd): continue
             if self.tab_layout.is_above_viewport(cmd, offset): continue
             cmd.execute(self.tab_layout.scroll - offset, canvas)
+        self.tab_layout.handle_scrollbar(canvas, offset)
 
     def on_resize(self, width, height):
         self.width = width
@@ -111,6 +111,11 @@ class Tab:
         if self.focus:
             if self.js.dispatch_event("keydown", self.focus): return
             self.focus.attributes["value"] += char
+            self.render()
+
+    def backspace(self):
+        if self.focus:
+            self.focus.attributes["value"] = self.focus.attributes["value"][:-1]
             self.render()
 
     def enter(self):
@@ -180,6 +185,15 @@ class Tab:
 
         return clicked_elements
 
+    def get_clicked_url(self, x, y):
+        clicked_elements = self.get_clicked_elements(x, y)
+        if not clicked_elements:
+            return
+        
+        interactive_element = clicked_elements['interactive']
+        if interactive_element.is_tag("a"):
+            return self.url.resolve(interactive_element.attributes["href"])
+    
     @staticmethod
     def is_interactive_element(element):
         return (element.tag == "a" and "href" in element.attributes) or \
