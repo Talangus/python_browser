@@ -3,6 +3,7 @@ from doc_layout.utils import *
 from html_.element import Element
 from html_.text import Text
 from doc_layout.draw_rect import DrawRect
+from doc_layout.draw_round_rect import DrawRRect
 from doc_layout.text_layout import TextLayout
 from doc_layout.line_layout import LineLayout
 from doc_layout.input_layout import InputLayout
@@ -62,8 +63,9 @@ class BlockLayout:
                 rect_cmds.append(cmd_gen[key]())
 
         if bgcolor != "transparent":
-            rect_cmds.append(DrawRect(self.self_rect(), bgcolor))
-
+            # rect_cmds.append(DrawRect(self.self_rect(), bgcolor))
+            radius = float(self.node.style.get("border-radius", "0px")[:-2])
+            rect_cmds.append(DrawRRect(self.self_rect(), radius, bgcolor))
         return rect_cmds
     
     def node_is(self, tag):
