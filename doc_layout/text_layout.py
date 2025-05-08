@@ -36,3 +36,7 @@ class TextLayout:
     
     def should_paint(self):
         return True
+    
+    def should_paint_effects(self):
+        return False    
+   

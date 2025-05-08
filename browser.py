@@ -1,10 +1,9 @@
-import tkinter
 import argparse
 import ctypes
 import sdl2
 import skia
 import sys
-
+import math
 
 from network.url import URL
 from network.socket_manager import socket_manager 
@@ -21,6 +20,7 @@ class Browser:
         self.active_tab = None
         self.width = 800
         self.height = 600
+        self.chrome = Chrome(self)
         self.sdl_window = sdl2.SDL_CreateWindow(b"Browser",
             sdl2.SDL_WINDOWPOS_CENTERED, sdl2.SDL_WINDOWPOS_CENTERED,
             self.width, self.height, sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_RESIZABLE)
@@ -29,6 +29,9 @@ class Browser:
                 self.width, self.height,
                 ct=skia.kRGBA_8888_ColorType,
                 at=skia.kUnpremul_AlphaType))
+        self.chrome_surface = skia.Surface(
+            self.width, math.ceil(self.chrome.bottom))
+        self.tab_surface = None
         if sdl2.SDL_BYTEORDER == sdl2.SDL_BIG_ENDIAN:
             self.RED_MASK = 0xff000000
             self.GREEN_MASK = 0x00ff0000
@@ -39,16 +42,16 @@ class Browser:
             self.GREEN_MASK = 0x0000ff00
             self.BLUE_MASK = 0x00ff0000
             self.ALPHA_MASK = 0xff000000
-        self.canvas = self.root_surface.getCanvas()
-        self.chrome = Chrome(self)
         self.focus = None
 
     def handle_scrolldown(self):
         self.active_tab.tab_layout.on_scrolldown()
+        self.raster_tab()
         self.draw()
 
     def handle_scrollup(self):
         self.active_tab.tab_layout.on_scrollup()
+        self.raster_tab()
         self.draw()
 
     def handle_click(self, e):
@@ -57,11 +60,16 @@ class Browser:
                 self.active_tab.blur()
             self.focus = None
             self.chrome.click(e.x, e.y)
+            self.raster_chrome()
         else:
             self.focus = 'content'
             self.chrome.blur()
             tab_y = e.y - self.chrome.bottom
+            url = self.active_tab.url
             self.active_tab.click(e.x, tab_y)
+            if self.active_tab.url != url:
+                self.raster_chrome()
+            self.raster_tab()
         self.draw()
 
     def handle_middle_click(self, e):
@@ -70,10 +78,13 @@ class Browser:
             url = self.active_tab.get_clicked_url(e.x, tab_y)
             if url:
                 self.new_tab(url)
+                self.raster_chrome()
+                self.raster_tab()
                 self.draw()
 
     def handle_mouse_wheel(self, e):
         self.active_tab.tab_layout.on_mouse_wheel(e)
+        self.raster_tab()
         self.draw()
 
     def handle_resize(self, event):
@@ -87,30 +98,38 @@ class Browser:
                 self.width, self.height,
                 ct=skia.kRGBA_8888_ColorType,
                 at=skia.kUnpremul_AlphaType))
-        self.canvas = self.root_surface.getCanvas()
 
         self.active_tab.on_resize(new_width, new_height)
+        self.raster_chrome()
+        self.raster_tab()
         self.draw()
 
     def handle_key(self, char):
         if self.chrome.keypress(char):
+            self.raster_chrome()
             self.draw()
         elif self.focus == "content":
             self.active_tab.keypress(char)
+            self.raster_tab()
             self.draw()
 
     def handle_enter(self):
         if self.chrome.enter():
-            self.draw()
+            self.raster_chrome()
+            
         elif self.focus == "content":
             self.active_tab.enter()
-            self.draw()
+            
+        self.raster_tab()
+        self.draw()
 
     def handle_backspace(self):
         if self.focus == 'content':
             self.active_tab.backspace()
+            self.raster_tab()
         else:
             self.chrome.backspace()
+            self.raster_chrome()
         self.draw()
 
     def on_close(self):
@@ -120,10 +139,31 @@ class Browser:
 
     def draw(self):
         sdl2.SDL_SetWindowTitle(self.sdl_window, self.active_tab.title.encode('utf-8'))
-        self.canvas.clear(parse_color('white'))
-        self.active_tab.draw(self.canvas, self.chrome.bottom)
-        for cmd in self.chrome.paint():
-            cmd.execute(0, self.canvas)
+        canvas = self.root_surface.getCanvas()
+        canvas.clear(parse_color('white'))
+
+        tab_rect = skia.Rect.MakeLTRB(
+            0, self.chrome.bottom, self.width, self.height)
+        tab_offset = self.chrome.bottom - self.active_tab.tab_layout.scroll
+        canvas.save()
+        canvas.clipRect(tab_rect)
+        canvas.translate(0, tab_offset)
+        self.tab_surface.draw(canvas, 0, 0)
+        canvas.restore()
+
+        chrome_rect = skia.Rect.MakeLTRB(
+            0, 0, self.width, self.chrome.bottom)
+        canvas.save()
+        canvas.clipRect(chrome_rect)
+        self.chrome_surface.draw(canvas, 0, 0)
+        canvas.restore()
+
+
+
+
+        # self.active_tab.draw(canvas, self.chrome.bottom)
+        # for cmd in self.chrome.paint():
+        #     cmd.execute(0, canvas)
             
         skia_image = self.root_surface.makeImageSnapshot()
         skia_bytes = skia_image.tobytes()
@@ -143,7 +183,26 @@ class Browser:
         new_tab.load(url)
         self.active_tab = new_tab
         self.tabs.append(new_tab)
+        self.raster_chrome()
+        self.raster_tab()
         self.draw()
+
+    def raster_tab(self):
+        tab_height = math.ceil(
+            self.active_tab.document.height + 2*self.active_tab.tab_layout.VSTEP)
+        
+        if not self.tab_surface or \
+                tab_height != self.tab_surface.height():
+            self.tab_surface = skia.Surface(self.width, tab_height)
+        canvas = self.tab_surface.getCanvas()
+        canvas.clear(skia.ColorWHITE)
+        
+        self.active_tab.raster(canvas)
+
+    def raster_chrome(self):
+        canvas = self.chrome_surface.getCanvas()
+        canvas.clear(skia.ColorWHITE)
+        self.chrome.raster(canvas)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Simple python browser.")

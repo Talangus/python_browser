@@ -52,7 +52,7 @@ class BlockLayout:
         if not isinstance(self.node, Element):
             return []
         
-        bgcolor = self.node.style.get("background-color", "transparent")
+        bgcolor = get_bgcolor(self.node)
         rect_cmds = []
 
         predicates = {"li": lambda: self.node_is("li")}
@@ -68,6 +68,11 @@ class BlockLayout:
             rect_cmds.append(DrawRRect(self.self_rect(), radius, bgcolor))
         return rect_cmds
     
+    def paint_effects(self, cmds):
+        cmds = paint_visual_effects(
+            self.node, cmds, self.self_rect())
+        return cmds
+
     def node_is(self, tag):
         return isinstance(self.node, Element) and self.node.tag == tag
 
@@ -218,6 +223,9 @@ class BlockLayout:
     def should_paint(self):
         return isinstance(self.node, Text) or \
             (self.node.tag != "input" and self.node.tag !=  "button")
+    
+    def should_paint_effects(self):
+        return self.should_paint()
     
     def handle_tag(self, element_node, tag_handlers):
         if element_node.tag in tag_handlers:

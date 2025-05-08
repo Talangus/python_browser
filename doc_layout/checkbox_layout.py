@@ -49,6 +49,14 @@ class CheckboxLayout:
     def should_paint(self):
         return True
     
+    def should_paint_effects(self):
+        return self.should_paint()
+
     def self_rect(self):
         return skia.Rect.MakeLTRB(self.x, self.y,
             self.x + self.width, self.y + self.height) 
+    
+    def paint_effects(self, cmds):
+        cmds = paint_visual_effects(
+            self.node, cmds, self.self_rect())
+        return cmds

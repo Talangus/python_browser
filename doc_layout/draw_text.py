@@ -14,12 +14,12 @@ class DrawText:
         self.color = color
         self.bottom = y1 + linespace(self.font)
 
-    def execute(self, scroll, canvas):
+    def execute(self, canvas):
         paint = skia.Paint(
             AntiAlias=True,
             Color=parse_color(self.color),
         )
-        baseline = self.rect.top() - scroll \
+        baseline = self.rect.top() \
             - self.font.getMetrics().fAscent
         canvas.drawString(self.text, float(self.rect.left()),
             baseline, self.font, paint)

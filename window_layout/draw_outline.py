@@ -6,10 +6,10 @@ class DrawOutline:
         self.color = color
         self.thickness = thickness
 
-    def execute(self, scroll, canvas):
+    def execute(self, canvas):
         paint = skia.Paint(
             Color=parse_color(self.color),
             StrokeWidth=self.thickness,
             Style=skia.Paint.kStroke_Style,
         )
-        canvas.drawRect(self.rect.makeOffset(0, -scroll), paint)
+        canvas.drawRect(self.rect, paint)

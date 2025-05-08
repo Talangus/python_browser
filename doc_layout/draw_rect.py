@@ -7,8 +7,8 @@ class DrawRect:
         self.color = color
         self.outline = outline
 
-    def execute(self, scroll, canvas):
+    def execute(self, canvas):
         paint = skia.Paint(
             Color=parse_color(self.color),
         )
-        canvas.drawRect(self.rect.makeOffset(0, -scroll), paint)
+        canvas.drawRect(self.rect, paint)

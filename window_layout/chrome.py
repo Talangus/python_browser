@@ -21,7 +21,9 @@ class Chrome:
         self.init_url_bar()
         self.bottom = self.urlbar_bottom
 
-        
+    def raster(self, canvas):
+            for cmd in self.paint():
+                cmd.execute(canvas)    
 
     def init_tab_bar(self):
         self.font = get_font(20, "normal", "roman", "Arial")

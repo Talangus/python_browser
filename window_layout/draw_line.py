@@ -7,11 +7,11 @@ class DrawLine:
         self.color = color
         self.thickness = thickness
 
-    def execute(self, scroll, canvas):
+    def execute(self, canvas):
         path = skia.Path().moveTo(
-            self.rect.left(), self.rect.top() - scroll) \
+            self.rect.left(), self.rect.top()) \
                 .lineTo(self.rect.right(),
-                    self.rect.bottom() - scroll)
+                    self.rect.bottom())
         paint = skia.Paint(
             Color=parse_color(self.color),
             StrokeWidth=self.thickness,

@@ -92,11 +92,11 @@ class URL:
 
         if not self.need_socket():
             content = self.local_request_content()
-            return content
+            return {}, content
         
         if cache.in_cache(self):
             content = cache.load_from_cache(self)
-            return content
+            return {}, content
         
         
         if payload:

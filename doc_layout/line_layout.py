@@ -1,4 +1,4 @@
-from doc_layout.utils import split_on_object, get_object_index
+from doc_layout.utils import split_on_object, get_object_index, paint_visual_effects
 class LineLayout:
     def __init__(self, node, parent, previous, x):
         self.node = node
@@ -65,3 +65,8 @@ class LineLayout:
     
     def should_paint(self):
         return True
+    
+    def should_paint_effects(self):
+        return False
+    
+   

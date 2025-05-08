@@ -51,7 +51,11 @@ class Tab:
         
         self.render()
         self.handle_fragment()
-        
+
+    def raster(self, canvas):
+        for cmd in list(reversed(self.display_list)):
+            cmd.execute(canvas)        
+
     def run_scripts(self, script_urls):
         for script in script_urls:
             script_url = self.url.resolve(script)
