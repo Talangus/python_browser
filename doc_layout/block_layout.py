@@ -63,7 +63,6 @@ class BlockLayout:
                 rect_cmds.append(cmd_gen[key]())
 
         if bgcolor != "transparent":
-            # rect_cmds.append(DrawRect(self.self_rect(), bgcolor))
             radius = float(self.node.style.get("border-radius", "0px")[:-2])
             rect_cmds.append(DrawRRect(self.self_rect(), radius, bgcolor))
         return rect_cmds

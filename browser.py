@@ -157,13 +157,6 @@ class Browser:
         canvas.clipRect(chrome_rect)
         self.chrome_surface.draw(canvas, 0, 0)
         canvas.restore()
-
-
-
-
-        # self.active_tab.draw(canvas, self.chrome.bottom)
-        # for cmd in self.chrome.paint():
-        #     cmd.execute(0, canvas)
             
         skia_image = self.root_surface.makeImageSnapshot()
         skia_bytes = skia_image.tobytes()

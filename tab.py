@@ -96,7 +96,6 @@ class Tab:
         self.document = DocumentLayout(self.nodes, self.width)
         self.document.layout()
         paint_tree(self.document, self.display_list)
-        # print_tree(self.document) 
         
     def draw(self, canvas, offset):
         for cmd in self.display_list:

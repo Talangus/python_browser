@@ -91,7 +91,6 @@ class TabLayout:
         page_bottom = self.tab.document.height
         scroll_to_bottom_ratio = self.scroll / page_bottom
         scroll_bar_top = scroll_to_bottom_ratio * self.height
-        # fit_to_screen_top = scroll_bar_top + 3
         top_left = Coordinate(self.width - self.VSTEP, scroll_bar_top)
         return top_left
     
