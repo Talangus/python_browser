@@ -119,6 +119,7 @@ class HTMLParser:
     def get_attributes(self, text):
         tag, *rest = text.split(maxsplit=1)
         tag = tag.casefold()
+        rest = [string.replace("\n", "") for string in rest]
         attributes = {}
         if len(rest) != 0:
             attr_pattern = re.compile(r'(\w+)(?:\s*=\s*(".*?"|\'.*?\'|\S+))?')

@@ -3,6 +3,7 @@ from doc_layout.utils import *
 from html_.element import Element
 from html_.text import Text
 from doc_layout.draw_rect import DrawRect
+from doc_layout.draw_round_rect import DrawRRect
 from doc_layout.text_layout import TextLayout
 from doc_layout.line_layout import LineLayout
 from doc_layout.input_layout import InputLayout
@@ -38,7 +39,7 @@ class BlockLayout:
             self.in_head = self.node_is("head")
     
     def self_rect(self):
-        return Rect(self.x, self.y,
+        return  skia.Rect.MakeLTRB(self.x, self.y,
             self.x + self.width, self.y + self.height)    
 
     def paint(self):
@@ -51,7 +52,7 @@ class BlockLayout:
         if not isinstance(self.node, Element):
             return []
         
-        bgcolor = self.node.style.get("background-color", "transparent")
+        bgcolor = get_bgcolor(self.node)
         rect_cmds = []
 
         predicates = {"li": lambda: self.node_is("li")}
@@ -62,10 +63,15 @@ class BlockLayout:
                 rect_cmds.append(cmd_gen[key]())
 
         if bgcolor != "transparent":
-            rect_cmds.append(DrawRect(self.self_rect(), bgcolor))
-
+            radius = float(self.node.style.get("border-radius", "0px")[:-2])
+            rect_cmds.append(DrawRRect(self.self_rect(), radius, bgcolor))
         return rect_cmds
     
+    def paint_effects(self, cmds):
+        cmds = paint_visual_effects(
+            self.node, cmds, self.self_rect())
+        return cmds
+
     def node_is(self, tag):
         return isinstance(self.node, Element) and self.node.tag == tag
 
@@ -73,17 +79,15 @@ class BlockLayout:
         bullet_char = "•"
         parent_font = get_html_node_font(self.node)
 
-        width = parent_font.measure(bullet_char)
-        ascent = parent_font.metrics("ascent")  
-        descent = parent_font.metrics("descent")  
-        line_height = ascent + descent  
+        width = parent_font.measureText(bullet_char)
+        line_height = linespace(parent_font)
         square_size = width  
         
         top_offset = (line_height - square_size) // 1.1
         x1, y1 = self.x, self.y + top_offset
         x2, y2 = x1 + square_size, y1 + square_size
 
-        return DrawRect(Rect(x1, y1, x2, y2), "black")
+        return DrawRect(skia.Rect.MakeLTRB(x1, y1, x2, y2), "black")
     
     def init_coordinates(self):
         self.x = self.parent.x
@@ -219,6 +223,9 @@ class BlockLayout:
         return isinstance(self.node, Text) or \
             (self.node.tag != "input" and self.node.tag !=  "button")
     
+    def should_paint_effects(self):
+        return self.should_paint()
+    
     def handle_tag(self, element_node, tag_handlers):
         if element_node.tag in tag_handlers:
                 tag_handlers[element_node.tag]()
@@ -253,7 +260,7 @@ class BlockLayout:
 
     def get_centered_cursor_x(self, text):
         font = get_html_node_font(self.node)
-        w = font.measure(text)
+        w = font.measureText(text)
         white_space = self.width - w
         left_margin = white_space/2
         return left_margin

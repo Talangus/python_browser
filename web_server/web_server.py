@@ -38,7 +38,10 @@ def handle_connection(conx):
 
     if "cookie" in headers:
         token = headers["cookie"][len("token="):]
-        if token in SESSIONS and "expires" in SESSIONS[token]:
+        
+        if token is not None and token not in SESSIONS:
+            token = None
+        elif token in SESSIONS and "expires" in SESSIONS[token]:
             expires = SESSIONS[token]["expires"]
             if expires < datetime.now():
                 del SESSIONS[token]

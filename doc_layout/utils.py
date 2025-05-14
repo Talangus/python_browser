@@ -1,4 +1,5 @@
-import tkinter.font
+import skia
+from doc_layout.opacity import Opacity
 
 FONTS = {}
 DEFAULT_FONT_FAMILY = "Arial"
@@ -6,15 +7,62 @@ DEFAULT_WEIGHT = "normal"
 DEFAULT_STYLE= "roman"
 DEFAULT_SIZE = 12
 INPUT_WIDTH_PX = 200
+NAMED_COLORS = {
+    "black": "#000000",
+    "white": "#ffffff",
+    "red": "#ff0000",
+    "green": "#008000",
+    "blue": "#0000ff",
+    "yellow": "#ffff00",
+    "cyan": "#00ffff",
+    "magenta": "#ff00ff",
+    "gray": "#808080",
+    "maroon": "#800000",
+    "olive": "#808000",
+    "lime": "#00ff00",
+    "teal": "#008080",
+    "navy": "#000080",
+    "purple": "#800080",
+    "silver": "#c0c0c0",
+    "orange": "#ffa500",
+    "brown": "#a52a2a",
+    "gold": "#ffd700",
+    "pink": "#ffc0cb",
+    "salmon": "#fa8072",
+    "coral": "#ff7f50",
+    "chocolate": "#d2691e",
+    "crimson": "#dc143c",
+    "indigo": "#4b0082",
+    "violet": "#ee82ee",
+    "plum": "#dda0dd",
+    "orchid": "#da70d6",
+    "turquoise": "#40e0d0",
+    "skyblue": "#87ceeb",
+    "lightblue": "#add8e6"
+}
+
 
 def get_font(size, weight, style, family):
-        key = (size, weight, style, family)
-        if key not in FONTS:
-            font = tkinter.font.Font(size=size, weight=weight,
-                slant=style, family=family)
-            label = tkinter.Label(font=font)
-            FONTS[key] = (font, label)
-        return FONTS[key][0]
+    key = (weight, style, family)
+    if key not in FONTS:
+        if weight == "bold":
+            skia_weight = skia.FontStyle.kBold_Weight
+        else:
+            skia_weight = skia.FontStyle.kNormal_Weight
+        if style == "italic":
+            skia_style = skia.FontStyle.kItalic_Slant
+        else:
+            skia_style = skia.FontStyle.kUpright_Slant
+        skia_width = skia.FontStyle.kNormal_Width
+        style_info = \
+            skia.FontStyle(skia_weight, skia_width, skia_style)
+        font = skia.Typeface(family, style_info)
+        FONTS[key] = font
+    return skia.Font(FONTS[key], size)
+
+def linespace(font):
+    metrics = font.getMetrics()
+    return metrics.fDescent - metrics.fAscent
 
 def get_html_node_font(node):
     weight = node.style["font-weight"]
@@ -44,3 +92,35 @@ def split_on_object(arr, split_obj):
         return arr[:split_index], arr[split_index:]
     else:
         return arr, []
+
+def parse_color(color):
+    if color.startswith("#") and len(color) == 7:
+        r = int(color[1:3], 16)
+        g = int(color[3:5], 16)
+        b = int(color[5:7], 16)
+        return skia.Color(r, g, b)
+    elif color.startswith("#") and len(color) == 9:
+        r = int(color[1:3], 16)
+        g = int(color[3:5], 16)
+        b = int(color[5:7], 16)
+        a = int(color[7:9], 16)
+        return skia.Color(r, g, b, a)
+    elif color in NAMED_COLORS:
+        return parse_color(NAMED_COLORS[color])
+    else:
+        return skia.ColorBLACK
+    
+def get_bgcolor(node):
+    bgcolor = node.style.get("background-color", "transparent")
+    if bgcolor != "transparent":
+        return bgcolor
+    
+    bg = node.style.get("background", "transparent")
+    return bg
+
+def paint_visual_effects(node, cmds, rect):
+    opacity = float(node.style.get("opacity", "1.0"))
+
+    return [
+        Opacity(opacity, cmds)
+    ]
