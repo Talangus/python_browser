@@ -4,11 +4,14 @@ from html_.element import Element
 from util.utils import *
 from js.utils import *
 from util.utils import COOKIE_JAR
-import dukpy
+from scheduling.task import Task
 from network.url import URL
+import dukpy
+import threading
 
 RUNTIME_JS = open("js/runtime.js").read()
 EVENT_DISPATCH_JS = "new Node(dukpy.handle).dispatchEvent(new Event(dukpy.type))"
+SETTIMEOUT_JS = "__runSetTimeout(dukpy.handle)"
 VOID_ELEMENTS = [
     "area",
     "base",
@@ -31,6 +34,7 @@ class JSContext:
         self.interp = dukpy.JSInterpreter()
         self.node_to_handle = {}
         self.handle_to_node = {}
+        self.discarded = False
 
     def start_runtime_env(self):
         self.export_functions()
@@ -67,6 +71,8 @@ class JSContext:
             self.cookie_set)
         self.interp.export_function("XMLHttpRequest_send",
             self.XMLHttpRequest_send)
+        self.interp.export_function("setTimeout",
+            self.setTimeout)
 
 
     def run(self, code):
@@ -288,3 +294,13 @@ class JSContext:
             return 
 
         COOKIE_JAR[host] = parse_cookie(cookie)
+
+    def dispatch_settimeout(self, handle):
+        if self.discarded: return
+        self.interp.evaljs(SETTIMEOUT_JS, handle=handle)
+
+    def setTimeout(self, handle, time):
+        def run_callback():
+            task = Task(self.dispatch_settimeout, handle)
+            self.tab.task_runner.schedule_task(task)
+        threading.Timer(time / 1000.0, run_callback).start()

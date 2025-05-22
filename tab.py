@@ -9,6 +9,7 @@ from css.utils import get_css_rules
 from js.js_context import JSContext
 from js.utils import *
 from network.url import URL
+from scheduling.task import TaskRunner, Task
 from util.utils import *
 
 import urllib
@@ -29,6 +30,7 @@ class Tab:
         self.focus = None
         self.referer_policy = None
         self.js = JSContext(self)
+        self.task_runner = TaskRunner(self)
     
     def load(self, url, payload=None):
         self.history.append(url)
@@ -45,6 +47,8 @@ class Tab:
         self.rules = self.DEFAULT_STYLE_SHEET.copy()
         self.rules.extend(get_css_rules(self, url))
         
+        self.js.discarded = True
+        self.js = JSContext(self)
         self.js.start_runtime_env()
         script_urls = get_external_scripts(self.nodes)
         self.run_scripts(script_urls)        
@@ -64,9 +68,11 @@ class Tab:
                 continue
             try:
                 _, body = script_url.request(self)
-                self.js.run(body)
+                # self.js.run(body)
             except:
                 continue
+            task = Task(self.js.run, body)
+            self.task_runner.schedule_task(task)
 
     def handle_origins(self, headers):
         self.allowed_origins = None
