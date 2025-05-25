@@ -12,6 +12,7 @@ import threading
 RUNTIME_JS = open("js/runtime.js").read()
 EVENT_DISPATCH_JS = "new Node(dukpy.handle).dispatchEvent(new Event(dukpy.type))"
 SETTIMEOUT_JS = "__runSetTimeout(dukpy.handle)"
+XHR_ONLOAD_JS = "__runXHROnload(dukpy.out, dukpy.handle)"
 VOID_ELEMENTS = [
     "area",
     "base",
@@ -253,14 +254,28 @@ class JSContext:
         else:
             return element.text
 
-    def XMLHttpRequest_send(self, method, url, body):
+    def XMLHttpRequest_send(self, method, url, body, isasync, handle):
         full_url = self.tab.url.resolve(url)
         if not self.tab.allowed_request(full_url):
             raise Exception("Cross-origin XHR blocked by CSP")
-        response_headers, out = full_url.request(self.tab, body)
-        self.cors_allowed(full_url.origin(), self.tab.url.origin(), response_headers)
-        return out
+           
+        def run_load():
+            response_headers, out = full_url.request(self.tab, body)
+            self.cors_allowed(full_url.origin(), self.tab.url.origin(), response_headers)
+            task = Task(self.dispatch_xhr_onload, out, handle)
+            self.tab.task_runner.schedule_task(task)
+            return out
+        
+        if not isasync:
+            return run_load()
+        else:
+            threading.Thread(target=run_load).start()
     
+    def dispatch_xhr_onload(self, out, handle):
+        if self.discarded: return
+        do_default = self.interp.evaljs(
+            XHR_ONLOAD_JS, out=out, handle=handle)
+
     @staticmethod
     def cors_allowed(destination_origin, current_origin, response_headers):
         if destination_origin == current_origin:

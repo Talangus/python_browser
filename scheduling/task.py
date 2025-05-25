@@ -32,8 +32,12 @@ class TaskRunner:
         self.condition.release()
         if task:
             task.run()
-
-        self.condition.acquire(blocking=True)
-        if len(self.tasks) == 0:
-            self.condition.wait()
-        self.condition.release()
+        
+        # self.condition.acquire(blocking=True)
+        # if len(self.tasks) == 0:
+        #     self.condition.wait()
+        # self.condition.release()
+        
+        # Template deadlock bug, this code runs on the same thread as SDL_PollEvent.
+        # once the queue is empty this thread goes to sleep and can't handle window interaction
+        # so new tasks can't be added.

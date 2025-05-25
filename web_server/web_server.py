@@ -65,8 +65,8 @@ def handle_connection(conx):
         template = "Set-Cookie: token={}; SameSite=Lax; expires={}\r\n"
         response += template.format(token, expires_str)
     
-    csp = "default-src http://localhost:8000 https://run.mocky.io"
-    response += "Content-Security-Policy: {}\r\n".format(csp)
+    # csp = "default-src http://localhost:8000 https://run.mocky.io"
+    # response += "Content-Security-Policy: {}\r\n".format(csp)
     response += "Access-Control-Allow-Origin: *\r\n"
     response += "Referrer-Policy: same-origin\r\n"
 
@@ -156,7 +156,7 @@ def show_comments(session):
     else:
         out += "<a href=/login>Sign in to write in the guest book</a>"
 
-    out += "<script src=https://example.com/evil.js></script>" #csp test
+    # out += "<script src=https://example.com/evil.js></script>" #csp test
     return out
     
 

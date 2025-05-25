@@ -20,3 +20,14 @@ form.addEventListener("submit", function(e) {
     if (!allow_submit) e.preventDefault();
 });
 
+function print(){
+    console.log("test")
+}
+setTimeout(print, 5000)
+
+const xhr = new XMLHttpRequest();
+xhr.open("GET", "https://run.mocky.io/v3/cb699e5b-844f-4806-8060-69646b71b8d7", true);
+xhr.onload = function () {
+    console.log(xhr.responseText)
+}
+xhr.send();

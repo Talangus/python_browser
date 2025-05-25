@@ -243,7 +243,7 @@ def mainloop(browser):
                     if event.window.event == sdl2.SDL_WINDOWEVENT_SIZE_CHANGED:
                         browser.handle_resize(event)
 
-        browser.active_tab.task_runner.run()  # sleeps until next call, book code has a major bug
+        browser.active_tab.task_runner.run()  
 
 if __name__ == "__main__":
     sdl2.SDL_Init(sdl2.SDL_INIT_EVENTS)
